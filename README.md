@@ -85,6 +85,21 @@ creusot-install provers
 Why3's GTK front end, `why3-ide`, is not built either. It needs system GTK
 packages that a headless machine has no reason to carry.
 
+### Other platforms
+
+Only x86_64 Linux with glibc is built here. For the others, as of Creusot
+0.15.0:
+
+| target       | state                                                                |
+| ------------ | -------------------------------------------------------------------- |
+| arm64 Linux  | compiles; upstream ships no Alt-Ergo or CVC4 binary for it           |
+| arm64 macOS  | compiles, and upstream's own CI covers it                            |
+| x86_64 macOS | `creusot-install` does not compile: it carries no prover URLs for it |
+| Windows      | `cargo-creusot` does not compile: it reads `std::os::unix`           |
+
+The last two are properties of Creusot itself rather than of this packaging, so
+a prebuilt release cannot supply them.
+
 ## Verifying what you downloaded
 
 Every release carries `SHA256SUMS` over all of its assets:
