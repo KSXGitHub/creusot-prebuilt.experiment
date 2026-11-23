@@ -1,4 +1,8 @@
-# Contributor guide
+# Instructions for AI agents
+
+This file is what an AI agent reads before changing anything here, and
+`AGENTS.md` points at it so that other harnesses pick it up. It is written as
+rules addressed to an agent rather than as a contributing guide for people.
 
 This repository builds [Creusot](https://github.com/creusot-rs/creusot) and the
 Why3 framework it proves with, and publishes the result as GitHub release
@@ -85,7 +89,9 @@ file under a running build makes it resume in the middle of a line.
 These conventions come from
 [KSXGitHub/perfectionist](https://github.com/KSXGitHub/perfectionist), which
 arrived at them while reviewing prose that machines had written. They apply to
-every doc comment, script comment, commit message, and markdown file here.
+every doc comment, script comment, commit message, and markdown file here, and
+an agent is the reason they are written down: left alone, it produces prose that
+is long, obvious and unverifiable.
 
 ### Do not write documentation that restates the code
 
@@ -201,7 +207,7 @@ The `commit-msg` hook rejects both shapes.
 
 ## Symlinks
 
-This file is the authoritative guide. It is also exposed under another name so
+This file is the authoritative copy. It is also exposed under another name so
 that other agent harnesses pick it up:
 
 - `AGENTS.md`, a symlink to `CLAUDE.md`.

@@ -148,7 +148,9 @@ needs `rustup`, `opam`, and the system packages the OCaml dependencies are
 compiled against, which
 [the build action](.github/actions/build/action.yaml) installs on Ubuntu.
 
-[CLAUDE.md](CLAUDE.md) is the contributor guide.
+[CLAUDE.md](CLAUDE.md) holds the conventions this repository is written to. It
+is addressed to the AI agents that work on it rather than to you, but it is the
+place those conventions are recorded.
 
 ## Licences
 
