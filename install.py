@@ -33,6 +33,17 @@ CREUSOT_DATA_HOME = "creusot-data-home"
 WHY3_PREFIX = "why3-prefix"
 
 
+def say(message: str = "") -> None:
+    """Tell the person something.
+
+    Narration goes to stderr so that a caller redirecting stdout catches only
+    what it asked for. `--list` is the exception: its listing is the answer to
+    the question, so it goes to stdout.
+    """
+    sys.stderr.write(f"{message}\n")
+    sys.stderr.flush()
+
+
 class InstallError(Exception):
     """Something the caller has to fix: a missing tool, a bad checksum, a read-only prefix."""
 
@@ -192,7 +203,7 @@ def safe_members(archive: tarfile.TarFile, prefix: Path) -> list[tarfile.TarInfo
 
 def install_asset(asset: AssetDescription, source: Source, prefix: Path, dry_run: bool) -> list[str]:
     """Unpack one asset at its prefix and report the paths it put there."""
-    print(f"  {asset.name}: {human_size(asset.size)} into {prefix}")
+    say(f"  {asset.name}: {human_size(asset.size)} into {prefix}")
     if dry_run:
         return []
     with tempfile.TemporaryDirectory() as scratch:
@@ -216,7 +227,7 @@ def link_into_data_bin(data: Path, target: Path) -> None:
     if link.is_symlink() or link.exists():
         link.unlink()
     link.symlink_to(target)
-    print(f"  linked {link} -> {target}")
+    say(f"  linked {link} -> {target}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -243,9 +254,9 @@ def main(argv: list[str] | None = None) -> int:
     description = parse_release(source.read_bytes(RELEASE_METADATA).decode("utf-8"))
 
     if arguments.list:
-        print(f"{description.tag} for {description.target}, built against {description.rust_channel}")
+        sys.stdout.write(f"{description.tag} for {description.target}, built against {description.rust_channel}\n")
         for asset in description.assets:
-            print(f"  {asset.name:<16} {human_size(asset.size):>9}  {asset.summary}")
+            sys.stdout.write(f"  {asset.name:<16} {human_size(asset.size):>9}  {asset.summary}\n")
         return 0
 
     if arguments.all:
@@ -259,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
     why3_prefix = Path(description.why3_prefix)
     prefixes = {CREUSOT_DATA_HOME: data, WHY3_PREFIX: why3_prefix}
 
-    print(f"installing {description.tag} for {description.target}")
+    say(f"installing {description.tag} for {description.target}")
     assets = [description.asset(name) for name in wanted]
     installed_at_why3_prefix: list[str] = []
     for asset in assets:
@@ -281,11 +292,11 @@ def main(argv: list[str] | None = None) -> int:
         if Path(member).parent == Path("bin"):
             link_into_data_bin(data, why3_prefix / member)
 
-    print()
-    print(f"installed into {data}" + (f" and {why3_prefix}" if any(a.prefix == WHY3_PREFIX for a in assets) else ""))
-    print(f"put {data / 'bin'} on PATH, then `cargo creusot --help`")
+    say()
+    say(f"installed into {data}" + (f" and {why3_prefix}" if any(a.prefix == WHY3_PREFIX for a in assets) else ""))
+    say(f"put {data / 'bin'} on PATH, then `cargo creusot --help`")
     if any(asset.name == "creusot-install" for asset in assets):
-        print(f"run `CREUSOT_DATA_HOME={data} creusot-install provers` to add the SMT solvers")
+        say(f"run `CREUSOT_DATA_HOME={data} creusot-install provers` to add the SMT solvers")
     return 0
 
 
@@ -293,5 +304,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except InstallError as error:
-        print(f"install: {error}", file=sys.stderr)
+        say(f"install: {error}")
         sys.exit(1)

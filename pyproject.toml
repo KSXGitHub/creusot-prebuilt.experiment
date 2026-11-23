@@ -14,7 +14,10 @@ target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "S", "RUF", "EXE"]
+select = ["E", "F", "I", "N", "UP", "B", "S", "RUF", "EXE", "T20"]
+# T20 rejects `print`, which leaves two spellings and no third: `say` for the
+# person, who reads stderr, and `sys.stdout.write` where another program is
+# reading. Neither channel can then be picked by accident.
 # EXE holds a module that can be run and a module that is only imported to
 # their own shapes: a shebang without the executable bit, or the bit without a
 # shebang, is a module whose two halves disagree about which it is.

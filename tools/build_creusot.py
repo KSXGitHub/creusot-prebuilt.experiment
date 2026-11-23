@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from lib import layout, rust_build, rust_toolchain
+from lib.console import say
 from lib.gitcmd import GitError
 from lib.run import CommandError, require, run
 
@@ -50,7 +51,7 @@ def build(plan: layout.Layout, target: str) -> None:
     packages = rust_build.packages_for(target, host)
     if target != host:
         skipped = ", ".join(sorted(set(rust_build.SHIPPED_FOR_THE_HOST_ONLY) - set(packages)))
-        print(f"build-creusot: {target} is not the host, so {skipped} is skipped", file=sys.stderr)
+        say(f"build-creusot: {target} is not the host, so {skipped} is skipped")
 
     environment = {
         "SOURCE_DATE_EPOCH": str(plan.source_date_epoch()),
@@ -96,13 +97,13 @@ def assemble(plan: layout.Layout, target: str, host: str) -> None:
     for name in CONFIGURATION:
         shutil.copyfile(plan.source / name, out / Path(name).name)
 
-    print(f"build-creusot: assembled {out} for {target} against {plan.release.upstream_tag}")
+    say(f"build-creusot: assembled {out} for {target} against {plan.release.upstream_tag}")
 
 
 def main(argv: list[str] | None = None) -> int:
     arguments = sys.argv[1:] if argv is None else argv
     if len(arguments) > 1:
-        print("usage: build_creusot.py [target-triple]", file=sys.stderr)
+        say("usage: build_creusot.py [target-triple]")
         return 2
     plan = layout.read()
     build(plan, arguments[0] if arguments and arguments[0] else rust_build.host_triple())
@@ -113,5 +114,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except (CommandError, GitError, rust_toolchain.ToolchainError) as error:
-        print(f"build-creusot: {error}", file=sys.stderr)
+        say(f"build-creusot: {error}")
         sys.exit(1)

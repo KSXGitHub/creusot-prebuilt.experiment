@@ -47,6 +47,24 @@ invocations in shell, the argument lists were printed as strings and split back
 apart with `read -r -a`, which a path with a space would have broken. A command
 and the list it is given belong on the same side of the boundary.
 
+## stdout is for a program, stderr is for a person
+
+Narration goes to stderr: progress, what was assembled, which switch was
+reused, why a check failed. A caller redirecting stdout then catches only what
+it asked for, and a hook's explanation cannot land in whatever was reading its
+output.
+
+stdout carries only what another program consumes, so every call to
+`sys.stdout.write` is a place with a reader: a workflow redirecting markdown
+into a file, a runner parsing a workflow command, a caller asking for a
+listing. A command that runs `cargo`, `opam` or `rustup` sends their output to
+stderr as well, since from its caller's side that is narration too.
+
+`say` from `tools/lib/console.py` is the stderr channel, and `install.py`
+defines its own because it ships alone. Ruff's `T20` rules reject `print`, so
+the two spellings are `say` and `sys.stdout.write` and there is no third that
+picks a channel by accident.
+
 ## Taking a string apart
 
 Where a string has to be parsed, the parse is built from the `take_*` functions

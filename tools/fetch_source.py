@@ -11,6 +11,7 @@ import shutil
 import sys
 
 from lib import layout
+from lib.console import say
 from lib.gitcmd import GitError, git_output
 from lib.run import CommandError, run
 
@@ -28,14 +29,14 @@ def main() -> int:
             at_tag = ""
 
     if at_tag == tag:
-        print(f"fetch-source: {source} is already at {tag}")
+        say(f"fetch-source: {source} is already at {tag}")
     else:
         shutil.rmtree(source, ignore_errors=True)
         source.parent.mkdir(parents=True, exist_ok=True)
         run(["git", "clone", "--depth", "1", "--branch", tag, plan.creusot_repo, source])
 
     commit = git_output(["rev-parse", "HEAD"], cwd=source).strip()
-    print(f"fetch-source: {tag} is commit {commit}")
+    say(f"fetch-source: {tag} is commit {commit}")
     return 0
 
 
@@ -43,5 +44,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except (CommandError, GitError) as error:
-        print(f"fetch-source: {error}", file=sys.stderr)
+        say(f"fetch-source: {error}")
         sys.exit(1)

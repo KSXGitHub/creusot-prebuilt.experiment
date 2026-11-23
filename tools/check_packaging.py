@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 
 from lib import layout, manifest, packaging
+from lib.console import say
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,11 +27,11 @@ def main(argv: list[str] | None = None) -> int:
         again = (second / manifest.CHECKSUMS).read_text(encoding="utf-8")
 
     if first != again:
-        print("✖ a second slice of the same build tree hashed differently", file=sys.stderr)
+        say("✖ a second slice of the same build tree hashed differently")
         for line in sorted(set(again.splitlines()) - set(first.splitlines())):
-            print(f"    {line}", file=sys.stderr)
+            say(f"    {line}")
         return 1
-    print("check-packaging: a second slice of the same build tree hashes the same")
+    say("check-packaging: a second slice of the same build tree hashes the same")
     return 0
 
 

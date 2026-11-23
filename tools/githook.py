@@ -15,6 +15,7 @@ from pathlib import Path
 
 from lib import commit_message, layout, release_contract
 from lib.commit_checks import CHECKS
+from lib.console import say
 
 
 def commit_msg(repo: Path, message_file: Path) -> int:
@@ -28,7 +29,7 @@ def commit_msg(repo: Path, message_file: Path) -> int:
     for check in CHECKS:
         report = check(message)
         if report is not None:
-            print(report, file=sys.stderr)
+            say(report)
             return 1
 
     return release_contract.check_staged_message(repo, message)

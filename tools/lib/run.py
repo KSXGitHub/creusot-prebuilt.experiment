@@ -5,8 +5,11 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+
+from .console import say
 
 
 class CommandError(Exception):
@@ -21,9 +24,11 @@ def run(
 ) -> None:
     """Run `command`, echoing it first so a CI log says what was done."""
     spelled = [str(word) for word in command]
-    print("+ " + " ".join(spelled), flush=True)
+    say("+ " + " ".join(spelled))
     environment = {**os.environ, **extra_env} if extra_env else None
-    result = subprocess.run(spelled, cwd=cwd, env=environment)
+    # What cargo, opam and rustup have to say is narration too, so it joins the
+    # rest of it on stderr rather than reaching whoever is reading ours.
+    result = subprocess.run(spelled, cwd=cwd, env=environment, stdout=sys.stderr)
     if result.returncode != 0:
         raise CommandError(f"{spelled[0]} exited {result.returncode}")
 

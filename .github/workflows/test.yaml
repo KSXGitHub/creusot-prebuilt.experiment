@@ -72,5 +72,3 @@ jobs:
       - name: Build every tool and slice it into archives
         uses: ./.github/actions/build
 
-      - name: Report what was built
-        run: cat dist/SHA256SUMS

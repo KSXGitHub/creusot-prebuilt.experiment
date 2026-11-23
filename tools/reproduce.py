@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from lib.console import say
 from lib.take import take_literal, take_while
 
 HEX = frozenset("0123456789abcdef")
@@ -105,7 +106,8 @@ def write_output(name: str, value: str) -> None:
     """Hand a value to the next workflow step, or print it when run outside one."""
     destination = os.environ.get("GITHUB_OUTPUT")
     if destination is None:
-        print(f"{name}={value}")
+        # No workflow is reading, so this is for a person at a terminal.
+        say(f"{name}={value}")
         return
     with Path(destination).open("a", encoding="utf-8") as handle:
         handle.write(f"{name}={value}\n")
@@ -117,9 +119,10 @@ def command_resolve(arguments: argparse.Namespace) -> int:
     if not tag:
         tag = latest_tag(arguments.repository)
     if not tag:
-        print(f"::notice ::{arguments.repository} has no release to rebuild yet")
+        # A workflow command, which the runner parses out of stdout.
+        sys.stdout.write(f"::notice ::{arguments.repository} has no release to rebuild yet\n")
     else:
-        print(f"reproduce: rebuilding {tag}")
+        say(f"reproduce: rebuilding {tag}")
     write_output("tag", tag)
     return 0
 
@@ -149,15 +152,15 @@ def command_compare(arguments: argparse.Namespace) -> int:
 
     width = max(len(result.name) for result in results)
     for result in results:
-        print(f"  {result.name:<{width}}  {result.verdict.value}")
+        say(f"  {result.name:<{width}}  {result.verdict.value}")
 
     unmatched = [result for result in results if result.verdict is not Verdict.MATCHES]
     if unmatched:
-        print(f"\n✖ {arguments.release} did not reproduce:", file=sys.stderr)
+        say(f"\n✖ {arguments.release} did not reproduce:")
         for result in unmatched:
-            print(f"    {result.name}: {result.verdict.value}", file=sys.stderr)
+            say(f"    {result.name}: {result.verdict.value}")
         return 1
-    print(f"\n{arguments.release} reproduced, every asset byte for byte")
+    say(f"\n{arguments.release} reproduced, every asset byte for byte")
     return 0
 
 
@@ -185,5 +188,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except ChecksumsError as error:
-        print(f"reproduce: {error}", file=sys.stderr)
+        say(f"reproduce: {error}")
         sys.exit(1)

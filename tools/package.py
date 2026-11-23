@@ -7,7 +7,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from lib import layout, packaging
+from lib import layout, manifest, packaging
+from lib.console import say
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -29,7 +30,9 @@ def main(argv: list[str] | None = None) -> int:
         source=arguments.source,
         target=arguments.target,
     )
-    sys.stdout.write((dist / "SHA256SUMS").read_text(encoding="utf-8"))
+    # Nothing reads this, so it is narration: what was written, for whoever ran
+    # the command. The files themselves are what the next step consumes.
+    say((dist / manifest.CHECKSUMS).read_text(encoding="utf-8").rstrip())
     return 0
 
 

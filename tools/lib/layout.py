@@ -83,6 +83,25 @@ class Layout:
         """The prefix opam installs the switch into, and the one `why3` bakes in."""
         return self.why3_switch / "_opam"
 
+    @property
+    def smoke_root(self) -> Path:
+        """Holds one compiled dependency tree per driver the smoke test has seen."""
+        return self.build_root / "smoke-test"
+
+    def smoke_target(self, driver: str) -> Path:
+        """Where the smoke test compiles the demo crate's dependencies.
+
+        It sits under `build_root`, which the build cache carries, so the
+        dependency tree is compiled once rather than on every run. The
+        directory is named after the content of the installed driver, because
+        `cargo-creusot` points cargo at `creusot-rustc` through `RUSTC` and
+        cargo keys its own fingerprints on the version that binary reports
+        rather than on the binary. Two build revisions of one Creusot version
+        report the same version, so without this a new driver could reuse
+        artefacts the old one produced.
+        """
+        return self.smoke_root / driver / "target"
+
     def source_date_epoch(self) -> int:
         """The upstream tag's commit date, which every mtime in every asset gets.
 

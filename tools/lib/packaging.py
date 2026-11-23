@@ -10,7 +10,6 @@ the compilers produced is all that is left to differ.
 from __future__ import annotations
 
 import gzip
-import hashlib
 import json
 import os
 import shutil
@@ -20,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import layout, manifest, opam, release, rust_build, rust_toolchain
+from .checksums import sha256_of
 from .gitcmd import git_output
 from .manifest import Asset, Member
 
@@ -108,14 +108,6 @@ def write_archive(stage: Path, destination: Path, epoch: int) -> None:
                     else:
                         archive.addfile(info)
     os.utime(destination, (epoch, epoch))
-
-
-def sha256_of(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def build_asset(

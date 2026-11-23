@@ -10,12 +10,12 @@ pushed from elsewhere cannot skip the check.
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Iterable
 from pathlib import Path
 
 from . import commit_message, release
 from .commit_message import CommitMessage
+from .console import say
 from .gitcmd import GitError, git_output
 from .release import ReleaseError
 
@@ -45,15 +45,14 @@ def files_problems(pkgver: str, pkgrel: str, tag: str) -> list[str]:
 
 def report(tag: str, problems: list[str]) -> int:
     if not problems:
-        print(f"release-contract: {tag} holds")
+        say(f"release-contract: {tag} holds")
         return 0
-    print(f"✖ The release contract does not hold for {tag}:", file=sys.stderr)
+    say(f"✖ The release contract does not hold for {tag}:")
     for problem in problems:
-        print(f"    • {problem}", file=sys.stderr)
-    print(
+        say(f"    • {problem}")
+    say(
         "\nA commit tagged X.Y.Z-W must carry X.Y.Z-W as its whole message, and\n"
-        "the pkgver and pkgrel files at that commit must spell the same pair.",
-        file=sys.stderr,
+        "the pkgver and pkgrel files at that commit must spell the same pair."
     )
     return 1
 

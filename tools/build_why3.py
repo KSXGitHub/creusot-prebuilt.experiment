@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 from lib import layout, opam
+from lib.console import say
 from lib.run import CommandError, require, run
 
 PROGRAMS = ("why3", "why3find")
@@ -132,7 +133,7 @@ def assemble(plan: layout.Layout) -> None:
         raise CommandError("why3find's licence is missing from the switch")
 
     run([out / "bin" / "why3", "--version"])
-    print(f"build-why3: assembled {out}, baked for {prefix}")
+    say(f"build-why3: assembled {out}, baked for {prefix}")
 
 
 def main() -> int:
@@ -152,7 +153,7 @@ def main() -> int:
 
     marker = plan.why3_switch / opam.FILE_NAME
     if switch_is_current(plan, marker):
-        print(f"build-why3: reusing the switch at {plan.why3_switch}; its {opam.FILE_NAME} already matches")
+        say(f"build-why3: reusing the switch at {plan.why3_switch}; its {opam.FILE_NAME} already matches")
     else:
         create_switch(plan, marker)
 
@@ -164,5 +165,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except CommandError as error:
-        print(f"build-why3: {error}", file=sys.stderr)
+        say(f"build-why3: {error}")
         sys.exit(1)

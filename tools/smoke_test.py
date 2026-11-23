@@ -15,20 +15,55 @@ import sys
 import tempfile
 from pathlib import Path
 
-from lib import layout
+from lib import checksums, layout
+from lib.console import say
 from lib.run import CommandError, output, run
 
 DEMO = "demo"
 COMA = Path("verif") / "demo_rlib" / "add_one.coma"
 
 
+def installed_driver(data: Path) -> list[Path]:
+    """The binaries whose content decides what a build of the demo produces.
+
+    `creusot-rustc` compiles it and `cargo-creusot` chooses the flags, so a
+    change to either is a reason not to reuse what the last run compiled.
+    """
+    candidates = [data / "bin" / "cargo-creusot", *data.glob("toolchains/*/bin/creusot-rustc")]
+    found = [path for path in candidates if path.is_file()]
+    if not found:
+        raise CommandError(f"no driver was installed into {data}")
+    return found
+
+
+def keep_only(root: Path, wanted: str) -> None:
+    """Drop every dependency tree but the one this run will use.
+
+    Each is about 90 MB, and the build cache carries them, so the ones built
+    for drivers that have been replaced would otherwise accumulate in it.
+    """
+    if not root.is_dir():
+        return
+    for entry in root.iterdir():
+        if entry.name != wanted:
+            shutil.rmtree(entry, ignore_errors=True)
+
+
 def check(plan: layout.Layout, work: Path) -> None:
     data = work / "data"
     run([sys.executable, plan.repo / "install.py", "--from-dir", plan.dist, "--data-home", data, "--all"])
 
+    driver = checksums.digest_of(installed_driver(data))[:16]
+    keep_only(plan.smoke_root, driver)
     environment = {
         "CREUSOT_DATA_HOME": str(data),
         "PATH": f"{data / 'bin'}{os.pathsep}{os.environ['PATH']}",
+        # The demo crate's dependencies are `creusot-std` and its proc-macro
+        # tree, which take about half a minute to compile. Keeping them under
+        # `build_root` lets the build cache carry them between runs. The crate
+        # under verification is a different unit in every run, so the driver
+        # still runs on it and still emits the Coma this test looks for.
+        "CARGO_TARGET_DIR": str(plan.smoke_target(driver)),
     }
     for command in (["cargo-creusot", "creusot", "version"], ["why3", "--version"], ["why3find", "--version"]):
         run(command, extra_env=environment)
@@ -49,7 +84,7 @@ def check(plan: layout.Layout, work: Path) -> None:
     produced = work / DEMO / COMA
     if not produced.is_file():
         raise CommandError(f"{COMA} was not generated")
-    print(f"smoke-test: every tool installed, and {COMA.name} came out of the driver")
+    say(f"smoke-test: every tool installed, and {COMA.name} came out of the driver")
 
 
 def main() -> int:
@@ -68,5 +103,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except CommandError as error:
-        print(f"smoke-test: {error}", file=sys.stderr)
+        say(f"smoke-test: {error}")
         sys.exit(1)
