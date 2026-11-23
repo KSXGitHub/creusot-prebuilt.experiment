@@ -17,10 +17,10 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import sys
 import tarfile
 import tempfile
+import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -114,9 +114,14 @@ def data_home(override: Path | None) -> Path:
 
 
 def fetch(url: str) -> bytes:
-    with urllib.request.urlopen(url) as response:
-        body: bytes = response.read()
-        return body
+    try:
+        with urllib.request.urlopen(url) as response:
+            body: bytes = response.read()
+            return body
+    except urllib.error.HTTPError as error:
+        raise InstallError(f"{url} answered {error.code} {error.reason}") from error
+    except urllib.error.URLError as error:
+        raise InstallError(f"{url} could not be reached: {error.reason}") from error
 
 
 def latest_tag(repository: str) -> str:
@@ -137,21 +142,19 @@ class Source:
         else:
             self.tag = tag or latest_tag(repository)
 
-    def read(self, name: str, destination: Path | None = None) -> Path:
-        """Put the named release file on disk and return where it landed."""
-        if self.directory is not None:
-            local = self.directory / name
-            if not local.is_file():
-                raise InstallError(f"{local} does not exist")
-            if destination is None:
-                return local
-            shutil.copyfile(local, destination)
-            return destination
-        url = f"https://github.com/{self.repository}/releases/download/{self.tag}/{name}"
-        body = fetch(url)
-        target = destination if destination is not None else Path(tempfile.mkstemp()[1])
-        target.write_bytes(body)
-        return target
+    def read_bytes(self, name: str) -> bytes:
+        """The content of the named release file."""
+        if self.directory is None:
+            return fetch(f"https://github.com/{self.repository}/releases/download/{self.tag}/{name}")
+        local = self.directory / name
+        if not local.is_file():
+            raise InstallError(f"{local} does not exist")
+        return local.read_bytes()
+
+    def copy_to(self, name: str, destination: Path) -> Path:
+        """Put the named release file at `destination` and return it."""
+        destination.write_bytes(self.read_bytes(name))
+        return destination
 
 
 def sha256_of(path: Path) -> str:
@@ -188,7 +191,7 @@ def install_asset(asset: AssetDescription, source: Source, prefix: Path, dry_run
     if dry_run:
         return []
     with tempfile.TemporaryDirectory() as scratch:
-        archive_path = source.read(asset.file, Path(scratch) / asset.file)
+        archive_path = source.copy_to(asset.file, Path(scratch) / asset.file)
         actual = sha256_of(archive_path)
         if actual != asset.sha256:
             raise InstallError(f"{asset.file} hashes to {actual}, not the {asset.sha256} the release records")
@@ -232,7 +235,7 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
 
     source = Source(arguments.repository, arguments.release, arguments.from_dir)
-    description = parse_release(source.read(RELEASE_METADATA).read_text(encoding="utf-8"))
+    description = parse_release(source.read_bytes(RELEASE_METADATA).decode("utf-8"))
 
     if arguments.list:
         print(f"{description.tag} for {description.target}, built against {description.rust_channel}")
