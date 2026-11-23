@@ -5,6 +5,11 @@ name: Reproducibility
 # carries. A difference means something outside the pinned inputs reached the
 # build: a changed runner image, a dependency resolved afresh, a timestamp that
 # escaped SOURCE_DATE_EPOCH.
+#
+# Run by hand, because a full build is the most expensive thing in this
+# repository and nothing needs this answer on a schedule. Reach for it when a
+# release's checksums are in question, or after changing anything the build
+# reads.
 on:
   workflow_dispatch:
     inputs:
@@ -12,10 +17,6 @@ on:
         description: Which release to rebuild. Defaults to the latest.
         required: false
         default: ''
-  schedule:
-    # Weekly, so that drift in the runner image is found before the next release
-    # rather than during it.
-    - cron: '37 4 * * 1'
 
 permissions:
   contents: read

@@ -122,10 +122,10 @@ prefix it was installed at. Building elsewhere produces different checksums.
 just build
 ```
 
-Then compare `dist/SHA256SUMS` against the release's own. A scheduled
-[workflow](.github/workflows/reproducibility.yaml) does exactly this, with the
-build cache switched off, so that drift is found between releases rather than
-during one.
+Then compare `dist/SHA256SUMS` against the release's own. The
+[reproducibility workflow](.github/workflows/reproducibility.yaml) does exactly
+this, with the build cache switched off. It is started by hand rather than on a
+schedule.
 
 On one machine, every asset reproduces. Two builds of `0.15.0-1`, each starting
 from an empty opam switch and an empty cargo target directory, produced
