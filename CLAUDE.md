@@ -15,7 +15,9 @@ everything in the tree exists to produce one or to check that it is correct.
   passes it arguments.
 - **`scripts/*.sh`** invoke the toolchains. They are the places that run
   `cargo`, `opam`, `rustup`, and `git`, and they hold no decisions beyond the
-  conditionals those invocations need.
+  conditionals those invocations need. A script reaching for `grep`, `sed` or
+  `awk` to take a string apart is a sign the work belongs in `ci/`.
+- **`.githooks/*`** are one line each, and call `ci/githook.py`.
 - **`ci/*.py`** hold the computation and the decision trees: which file belongs
   to which asset, what makes a release commit valid, how an archive is written
   so that two runs produce the same bytes. They are type-annotated throughout
@@ -27,6 +29,26 @@ everything in the tree exists to produce one or to check that it is correct.
 A new piece of logic goes wherever it already fits. Shell that grows a
 decision tree belongs in `ci/`; Python that only spawns one program belongs in a
 script.
+
+## Taking a string apart
+
+Where a string has to be parsed, the parse is built from the `take_*` functions
+in `ci/take.py`. Each is offered a string and either consumes a prefix and hands
+back the remainder, or declines; a parse that owns its input finishes by
+requiring the remainder to be empty. `ci/github_text.py` and `ci/opam.py` are
+written that way.
+
+A regex is right for an anchored, total check. `ci/release.py` uses two, for
+`pkgver` and `pkgrel`, and they should stay. A regex is wrong for a scan,
+because what a scan gets wrong is boundaries and repetition, which is exactly
+what a regex hides. The two scanners here replaced regexes that reported two of
+three bare references and read a correctly escaped mention as a bare one, and
+neither fault was visible by reading.
+
+Where the standard library already parses the format, use it rather than writing
+a parser. `rust-toolchain` is TOML and goes through `tomllib`; `release.json`
+goes through `json`. opam's file format has no reader in the standard library,
+which is the reason `ci/opam.py` exists.
 
 ## The asset table has one definition
 
