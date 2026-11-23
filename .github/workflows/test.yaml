@@ -49,6 +49,11 @@ jobs:
 
     runs-on: ubuntu-24.04
 
+    # The opam switch compiles OCaml, Why3 and why3find from source, which runs
+    # for the better part of an hour on a cold cache. The limit is there to end
+    # a hang, not to pace a build.
+    timeout-minutes: 150
+
     steps:
       - uses: actions/checkout@v7
 

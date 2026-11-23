@@ -36,6 +36,8 @@ jobs:
 
     runs-on: ubuntu-24.04
 
+    timeout-minutes: 150
+
     permissions:
       contents: read
       id-token: write # for actions/attest-build-provenance
