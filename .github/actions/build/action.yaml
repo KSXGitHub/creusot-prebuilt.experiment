@@ -66,10 +66,12 @@ runs:
       if: inputs.cache == 'true'
       uses: actions/cache@v6
       with:
+        # `~/.rustup` is left out on purpose. It is the largest thing here at
+        # 2.1 GB, and rustup refetches the pinned toolchain in about a minute,
+        # which is less than storing and restoring it costs.
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          ~/.rustup
           ~/.opam
           /opt/creusot-why3
           /var/tmp/creusot-prebuilt
@@ -104,3 +106,11 @@ runs:
     - name: Put the archives through an installation and a proof-free run
       shell: bash
       run: just smoke-test
+
+    - name: Drop the switch's build directories before the cache is saved
+      if: inputs.cache == 'true'
+      shell: bash
+      # What opam keeps after an install is the unpacked and compiled source of
+      # every package, which nothing reads again. For this switch that is
+      # 1.4 GB down to 893 MB.
+      run: opam clean --switch /opt/creusot-why3

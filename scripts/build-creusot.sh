@@ -42,7 +42,13 @@ SOURCE_DATE_EPOCH=$(source_date_epoch)
 export SOURCE_DATE_EPOCH
 export CARGO_INCREMENTAL=0
 export CARGO_TARGET_DIR="$CARGO_TARGET"
-export RUSTFLAGS="--remap-path-prefix=$SRC=/build/creusot --remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/build/cargo"
+# `creusot-rustc` is compiled against `rustc-dev`, whose sources sit under the
+# rustup toolchain, so their paths reach the binary: 96 of them for Creusot
+# 0.15.0. Without the third remapping, a build under /root and a build under
+# /home/runner produce different bytes.
+export RUSTFLAGS="--remap-path-prefix=$SRC=/build/creusot"
+RUSTFLAGS="$RUSTFLAGS --remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/build/cargo"
+RUSTFLAGS="$RUSTFLAGS --remap-path-prefix=${RUSTUP_HOME:-$HOME/.rustup}=/build/rustup"
 
 cargo "+$CHANNEL" build --release --locked --target "$TARGET" "${PACKAGES[@]}"
 # `prelude-generator` only runs during this build, to generate the Coma prelude,
