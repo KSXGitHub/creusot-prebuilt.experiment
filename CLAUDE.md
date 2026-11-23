@@ -86,12 +86,9 @@ file under a running build makes it resume in the middle of a line.
 
 ## Writing
 
-These conventions come from
-[KSXGitHub/perfectionist](https://github.com/KSXGitHub/perfectionist), which
-arrived at them while reviewing prose that machines had written. They apply to
-every doc comment, script comment, commit message, and markdown file here, and
-an agent is the reason they are written down: left alone, it produces prose that
-is long, obvious and unverifiable.
+These conventions apply to every doc comment, script comment, commit message
+and markdown file here. They are written down because an agent left to itself
+produces prose that is long, obvious and unverifiable.
 
 ### Do not write documentation that restates the code
 
