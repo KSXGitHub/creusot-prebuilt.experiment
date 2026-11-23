@@ -27,10 +27,10 @@ holds.
 
 Each archive unpacks at one directory and needs no further moving:
 
-| the asset's `prefix` in `release.json` | unpack it at |
-| --- | --- |
-| `creusot-data-home` | `$CREUSOT_DATA_HOME`, else `$XDG_DATA_HOME/creusot`, else `~/.local/share/creusot` |
-| `why3-prefix` | the absolute path the same `release.json` records as `why3_prefix` |
+| the asset's `prefix` in `release.json` | unpack it at                                                                       |
+| -------------------------------------- | ---------------------------------------------------------------------------------- |
+| `creusot-data-home`                    | `$CREUSOT_DATA_HOME`, else `$XDG_DATA_HOME/creusot`, else `~/.local/share/creusot` |
+| `why3-prefix`                          | the absolute path the same `release.json` records as `why3_prefix`                 |
 
 `why3-prefix` is a fixed path rather than a choice, because `why3` compiles its
 data directory in and honours neither `WHY3DATA` nor being moved.
@@ -66,12 +66,12 @@ that is where `cargo-creusot` looks for it.
 
 ### What you need
 
-| prerequisite | why |
-| --- | --- |
-| x86_64 Linux with glibc | the only target built so far |
-| `rustup` | `cargo creusot` compiles the crate under verification with the pinned nightly |
-| write access to the `why3_prefix` directory | `why3` reads its theories from the path it was built at |
-| `$CREUSOT_DATA_HOME/bin` on `PATH` | an installer cannot edit your `PATH` |
+| prerequisite                                | why                                                                           |
+| ------------------------------------------- | ----------------------------------------------------------------------------- |
+| x86_64 Linux with glibc                     | the only target built so far                                                  |
+| `rustup`                                    | `cargo creusot` compiles the crate under verification with the pinned nightly |
+| write access to the `why3_prefix` directory | `why3` reads its theories from the path it was built at                       |
+| `$CREUSOT_DATA_HOME/bin` on `PATH`          | an installer cannot edit your `PATH`                                          |
 
 ### What is not here
 
