@@ -1,0 +1,66 @@
+name: Reproducibility
+
+# Rebuild a published release from its recorded inputs, with the build cache
+# switched off, and compare the result against the checksums that release
+# carries. A difference means something outside the pinned inputs reached the
+# build: a changed runner image, a dependency resolved afresh, a timestamp that
+# escaped SOURCE_DATE_EPOCH.
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Which release to rebuild. Defaults to the latest.
+        required: false
+        default: ''
+  schedule:
+    # Weekly, so that drift in the runner image is found before the next release
+    # rather than during it.
+    - cron: '37 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    name: Rebuild and compare
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Find the release to rebuild
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED: ${{ inputs.release }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          tag=$REQUESTED
+          if [ -z "$tag" ]; then
+            tag=$(gh release list --repo "$REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName // ""')
+          fi
+          if [ -z "$tag" ]; then
+            echo "::notice ::no release to rebuild yet"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        if: steps.release.outputs.tag != ''
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Build every tool again, without the cache
+        if: steps.release.outputs.tag != ''
+        uses: ./.github/actions/build
+        with:
+          cache: 'false'
+
+      - name: Compare against the checksums the release carries
+        if: steps.release.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          gh release download "$RELEASE_TAG" --repo "$REPOSITORY" --pattern SHA256SUMS --output published.SHA256SUMS
+          cd dist
+          sha256sum --check ../published.SHA256SUMS

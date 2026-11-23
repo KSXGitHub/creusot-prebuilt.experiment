@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check the scripts
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install mypy and ruff
+        run: pip install -r ci/requirements.txt
+
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - name: Check the Python
+        run: just check-python
+
+      - name: Check the shell scripts
+        run: just check-shell
+
+  build:
+    name: Build
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build every tool and slice it into archives
+        uses: ./.github/actions/build
+
+      - name: Report what was built
+        run: cat dist/SHA256SUMS

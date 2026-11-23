@@ -1,0 +1,81 @@
+"""Render the body of a GitHub release from the metadata the build wrote.
+
+The asset table in a release is the same table `ci/manifest.py` holds, so the
+notes are generated rather than kept in step by hand.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+import manifest
+
+PREFIX_NOTES = {
+    "creusot-data-home": "the Creusot data directory",
+    "why3-prefix": "`{why3_prefix}`",
+}
+
+
+def render(metadata: dict[str, Any]) -> str:
+    why3_prefix = metadata["why3_prefix"]
+    lines = [
+        f"Creusot {metadata['pkgver']}, build {metadata['pkgrel']}, "
+        f"from [`{metadata['creusot_tag']}`](https://github.com/creusot-rs/creusot/releases/tag/{metadata['creusot_tag']})"
+        f" (`{metadata['creusot_commit']}`).",
+        "",
+        "| asset | unpacks at | size | holds |",
+        "| --- | --- | --- | --- |",
+    ]
+    for asset in metadata["assets"]:
+        where = PREFIX_NOTES[asset["prefix"]].format(why3_prefix=why3_prefix)
+        lines.append(f"| `{asset['file']}` | {where} | {asset['size'] / 1e6:.1f} MB | {asset['summary']} |")
+    lines += [
+        "",
+        "Every archive unpacks at the directory named above and needs no further moving.",
+        f"`why3` is the exception that has no choice: it compiles `{why3_prefix}` in,",
+        "so it reads its theories from there wherever it is run from.",
+        "",
+        "## Installing",
+        "",
+        "```bash",
+        f"curl -fsSLO https://github.com/{metadata['repository']}/releases/download/{metadata['tag']}/install.py",
+        f"python3 install.py --release {metadata['tag']} --list",
+        f"python3 install.py --release {metadata['tag']} cargo-creusot creusot-rustc",
+        "```",
+        "",
+        "## Build inputs",
+        "",
+        f"- Rust toolchain: `{metadata['rust_channel']}`",
+        f"- Target: `{metadata['target']}`",
+        "- opam pins: " + ", ".join(f"`{name} {version}`" for name, version in sorted(metadata["opam_pins"].items())),
+        f"- `SOURCE_DATE_EPOCH`: `{metadata['source_date_epoch']}`",
+        "",
+        f"`{manifest.CHECKSUMS}` carries the checksum of every asset, and "
+        f"`{manifest.RELEASE_METADATA}` the same list in the form `install.py` reads.",
+        "Every asset also carries a GitHub build attestation:",
+        "",
+        "```bash",
+        f"gh attestation verify <asset> --repo {metadata['repository']}",
+        "```",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("metadata", type=Path, help=f"the {manifest.RELEASE_METADATA} the build wrote")
+    parser.add_argument("--repository", required=True, help="owner/name, for the download and verification commands")
+    arguments = parser.parse_args(argv)
+
+    metadata = json.loads(arguments.metadata.read_text(encoding="utf-8"))
+    metadata["repository"] = arguments.repository
+    sys.stdout.write(render(metadata))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
