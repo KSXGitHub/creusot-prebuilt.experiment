@@ -19,7 +19,7 @@ PKGREL_FILE = "pkgrel"
 # `v`. Restricting the shape keeps the hyphen in a tag unambiguous: everything
 # before the last one is the pkgver.
 PKGVER_PATTERN = re.compile(r"\A[0-9]+\.[0-9]+\.[0-9]+\Z")
-PKGREL_PATTERN = re.compile(r"\A[1-9][0-9]*\Z")
+PKGREL_PATTERN = re.compile(r"\A(0|[1-9][0-9]*)\Z")
 
 
 class ReleaseError(Exception):
@@ -49,7 +49,7 @@ def validate(pkgver: str, pkgrel: str) -> Release:
     if not PKGVER_PATTERN.fullmatch(pkgver):
         raise ReleaseError(f"pkgver must be X.Y.Z; got {pkgver!r}")
     if not PKGREL_PATTERN.fullmatch(pkgrel):
-        raise ReleaseError(f"pkgrel must be a positive integer without leading zeroes; got {pkgrel!r}")
+        raise ReleaseError(f"pkgrel must be a non-negative integer without leading zeroes; got {pkgrel!r}")
     return Release(pkgver=pkgver, pkgrel=pkgrel)
 
 

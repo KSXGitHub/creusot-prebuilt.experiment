@@ -58,8 +58,8 @@ is a change to the release, not to the build script.
 ## Cutting a release
 
 1. Edit `pkgver` to the upstream Creusot version, or `pkgrel` when the same
-   version is rebuilt with a packaging change. `pkgrel` restarts at `1` whenever
-   `pkgver` moves.
+   version is rebuilt with a packaging change. `pkgrel` counts from `0` and
+   restarts there whenever `pkgver` moves.
 2. Commit with the release identifier as the whole message, which `just version`
    prints. The `commit-msg` hook rejects anything else for such a commit.
 3. Tag the commit with the same identifier and push both.
