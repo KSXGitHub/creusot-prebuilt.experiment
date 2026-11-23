@@ -1,0 +1,26 @@
+# This repository ships no Python package. The file is here because mypy and
+# ruff read their configuration from it.
+
+[tool.mypy]
+files = ["ci", "install.py"]
+mypy_path = "ci"
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+
+[tool.ruff]
+include = ["ci/*.py", "install.py"]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "S", "RUF"]
+# Every subprocess call here names a fixed program and builds its own
+# arguments, and resolving `git` and `rustc` through PATH is what a build
+# tool is supposed to do.
+ignore = ["S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+# `install.py` builds an https URL out of its own arguments and opens it, which
+# is the whole point of the script.
+"install.py" = ["S310"]
