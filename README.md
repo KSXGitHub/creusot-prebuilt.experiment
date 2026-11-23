@@ -146,12 +146,17 @@ On one machine, every asset reproduces. Two builds of `0.15.0-1`, each starting
 from an empty opam switch and an empty cargo target directory, produced
 byte-identical archives, Why3 included.
 
-Across two machines running the same Ubuntu release, the picture is partial.
-`cargo-creusot`, `creusot-install` and `creusot-prelude` agreed. `why3` and
-`why3find` did not, and they carry no path from the machine that built them, so
-what differs has not been identified. `creusot-rustc` did not either, because
-96 paths from the rustup toolchain it is compiled against had reached the
-binary; a `--remap-path-prefix` for the rustup home now removes them.
+Across two machines running the same Ubuntu release, everything `cargo` builds
+reproduces and the two things opam builds do not. `cargo-creusot`,
+`creusot-rustc`, `creusot-install` and `creusot-prelude` came out byte-identical
+on a CI runner and on another host. `why3` and `why3find` did not, and they
+carry no path from the machine that built them, so what differs there has not
+been identified.
+
+`creusot-rustc` needed a fix to get there. It is compiled against `rustc-dev`,
+whose sources sit under the rustup toolchain, and 96 of those paths reached the
+binary, so one machine's copy said `/root` where the other said `/home/runner`.
+The build remaps the rustup home along with the source and cargo directories.
 
 ## Building it yourself
 
