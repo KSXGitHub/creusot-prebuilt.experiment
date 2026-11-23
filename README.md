@@ -137,10 +137,18 @@ prefix it was installed at. Building elsewhere produces different checksums.
 just build
 ```
 
-Then compare `dist/SHA256SUMS` against the release's own. The
-[reproducibility workflow](.github/workflows/reproducibility.yaml) does exactly
-this, with the build cache switched off. It is started by hand rather than on a
-schedule.
+Then compare what came out against the checksums the release carries, which
+needs the GitHub CLI:
+
+```bash
+just compare-release 0.15.0-0
+```
+
+It gives a verdict per asset: matching, differing, missing from the rebuild, or
+produced by the rebuild and absent from the release. The
+[reproducibility workflow](.github/workflows/reproducibility.yaml) runs the
+same build and the same comparison with the cache switched off, and is started
+by hand rather than on a schedule.
 
 On one machine, every asset reproduces. Two builds of `0.15.0-1`, each starting
 from an empty opam switch and an empty cargo target directory, produced

@@ -51,6 +51,10 @@ check-packaging target="":
 smoke-test:
     ./scripts/smoke-test.sh
 
+# Compare what dist/ holds against the checksums a published release carries
+compare-release tag repository="KSXGitHub/creusot-prebuilt.experiment":
+    {{ python }} tools/reproduce.py --repository '{{ repository }}' compare --release '{{ tag }}'
+
 # Check the types and the lints of the Python
 check-python:
     {{ python }} -m mypy
