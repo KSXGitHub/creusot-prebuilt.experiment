@@ -4,9 +4,16 @@ on:
   # A branch with an open pull request would otherwise build twice, and the
   # build is the slowest thing here. `workflow_dispatch` covers a branch that
   # has no pull request yet.
+  # Nothing the build reads is markdown, so a commit that touches only prose
+  # would spend a full build to say so. The list is written twice because
+  # GitHub's workflow parser does not resolve YAML anchors.
   push:
     branches: [master]
+    paths-ignore:
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
   workflow_call:
 
