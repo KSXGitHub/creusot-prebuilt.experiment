@@ -70,9 +70,9 @@ fix-python:
 check-shell:
     shellcheck -x scripts/*.bash scripts/lib/*.bash .githooks/*
 
-# Run the unit tests
-test:
-    PYTHONPATH=tools {{ python }} -m unittest discover --start-directory tests
+# Run the unit tests, or only those whose name holds the pattern
+test pattern="":
+    {{ python }} tools/run_tests.py {{ pattern }}
 
 # Every check that does not need a build
 check: check-python check-shell test

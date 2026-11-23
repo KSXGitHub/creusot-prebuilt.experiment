@@ -32,12 +32,14 @@ everything in the tree exists to produce one or to check that it is correct.
   the manifest says. `tools/lib/packaging.py` rewrites one assignment in it on
   the way into `dist/`, so that the uploaded copy installs the release it was
   uploaded with.
-- **`tests/*.py`** are the unit tests. Each is imported by the runner rather
-  than executed, so none carries a shebang or the executable bit, and each
-  reaches the library as `from lib import ...` because the `test` recipe puts
-  `tools` on `PYTHONPATH`. What belongs here is a parse, a decision or a check
-  that can be exercised without a build, which is most of `tools/lib` apart
-  from the parts that drive `cargo`, `opam` and `git`.
+- **`tests/*.py`** are the unit tests, which `tools/run_tests.py` discovers
+  and runs. Each is imported by the runner rather than executed, so none
+  carries a shebang or the executable bit, and each reaches the library as
+  `from lib import ...` without anything setting `PYTHONPATH`, because Python
+  puts the directory of the script it was given on the path and the runner sits
+  in `tools/`. What belongs here is a parse, a decision or a check that can be
+  exercised without a build, which is most of `tools/lib` apart from the parts
+  that drive `cargo`, `opam` and `git`.
 
 Which of the two a Python file is can be told from where it sits rather than
 from reading it, and ruff's `EXE` rules reject a shebang without the executable

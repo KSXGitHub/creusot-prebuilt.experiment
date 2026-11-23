@@ -33,3 +33,7 @@ ignore = ["S603", "S607"]
 # A test narrows a type with `assert`. S101 rejects one because `python -O`
 # strips it, which the test run never does.
 "tests/**/*.py" = ["S101"]
+# `unittest`'s TestResult hooks are camelCase, so an override of one cannot be
+# named any other way. Ruff offers `@typing.override` instead, which arrived in
+# 3.12 and this is written to 3.11.
+"tools/lib/test_report.py" = ["N802"]
