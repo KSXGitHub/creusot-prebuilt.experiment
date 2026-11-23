@@ -4,7 +4,7 @@ on:
   push:
     tags:
       # <pkgver>-<pkgrel>: the Creusot version, then this repository's build
-      # revision of it. `tools/release_contract.py` checks the exact shape.
+      # revision of it. `tools/lib/release_contract.py` checks the exact shape.
       - '[0-9]*.[0-9]*.[0-9]*-[0-9]*'
 
 permissions:

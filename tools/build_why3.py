@@ -133,7 +133,7 @@ def assemble(plan: layout.Layout) -> None:
         raise CommandError("why3find's licence is missing from the switch")
 
     run([out / "bin" / "why3", "--version"])
-    say(f"build-why3: assembled {out}, baked for {prefix}")
+    say(f"build-why3: assembled {out}, compiled to read its data from {prefix}")
 
 
 def main() -> int:

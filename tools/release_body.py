@@ -9,8 +9,8 @@ inventory, and that is what this renders: every asset, where it unpacks, how to
 install a subset of them, what the build read, and how to check what was
 downloaded.
 
-The asset table is the one `tools/manifest.py` holds, so it is generated rather
-than kept in step by hand.
+The asset table is the one `tools/lib/manifest.py` holds, so it is generated
+rather than kept in step by hand.
 """
 
 from __future__ import annotations
@@ -37,9 +37,9 @@ def human_size(size: int) -> str:
 def render(metadata: dict[str, Any]) -> str:
     why3_prefix = metadata["why3_prefix"]
     lines = [
-        f"Creusot {metadata['pkgver']}, build {metadata['pkgrel']}, "
-        f"from [`{metadata['creusot_tag']}`](https://github.com/creusot-rs/creusot/releases/tag/{metadata['creusot_tag']})"
-        f" (`{metadata['creusot_commit']}`).",
+        "Built from Creusot "
+        f"[`{metadata['creusot_tag']}`](https://github.com/creusot-rs/creusot/releases/tag/{metadata['creusot_tag']})"
+        f" (`{metadata['creusot_commit']}`). `pkgver` {metadata['pkgver']}, `pkgrel` {metadata['pkgrel']}.",
         "",
         "| asset | unpacks at | size | holds |",
         "| --- | --- | --- | --- |",
@@ -50,8 +50,11 @@ def render(metadata: dict[str, Any]) -> str:
     lines += [
         "",
         "Every archive unpacks at the directory its row names, and needs no further moving.",
-        f"`why3` is the one whose directory is fixed: it compiles `{why3_prefix}` in, so it",
-        "reads its theories from there wherever it is run from.",
+        "The Creusot data directory is `$CREUSOT_DATA_HOME`, else `$XDG_DATA_HOME/creusot`, else",
+        "`~/.local/share/creusot`, which is where `cargo-creusot` looks for the tools it spawns.",
+        f"`why3` compiles `{why3_prefix}` in, so it reads its theories from there wherever it",
+        "is run from, and unpacking that archive anywhere else leaves it reading a directory",
+        "that is not there.",
         "",
         "## Installing",
         "",
@@ -68,12 +71,17 @@ def render(metadata: dict[str, Any]) -> str:
         "- opam pins: " + ", ".join(f"`{name} {version}`" for name, version in sorted(metadata["opam_pins"].items())),
         f"- `SOURCE_DATE_EPOCH`: `{metadata['source_date_epoch']}`",
         "",
-        f"`{manifest.CHECKSUMS}` carries the checksum of every asset, and "
-        f"`{manifest.RELEASE_METADATA}` the same list in the form `install.py` reads.",
-        "Every asset also carries a GitHub build attestation:",
+        f"`{manifest.CHECKSUMS}` holds the checksum of every archive and of "
+        f"`{manifest.INSTALLER}`, in the format `sha256sum --check` reads. "
+        f"`{manifest.RELEASE_METADATA}` describes the same archives, and is what "
+        f"`{manifest.INSTALLER}` reads to find them.",
+        "",
+        "Every uploaded file also has a GitHub build provenance attestation. It records the",
+        "workflow run that produced the file, and is bound to the file's digest rather than",
+        "its name, so a renamed download still verifies:",
         "",
         "```bash",
-        f"gh attestation verify <asset> --repo {metadata['repository']}",
+        f"gh attestation verify <file> --repo {metadata['repository']}",
         "```",
     ]
     return "\n".join(lines) + "\n"
