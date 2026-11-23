@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """The Rust toolchain a Creusot tag pins, read from its `rust-toolchain` file.
 
 The file is TOML, so it is parsed as TOML. Both the build script and the
@@ -8,7 +7,6 @@ the file to look.
 
 from __future__ import annotations
 
-import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -48,22 +46,3 @@ def read(source: Path) -> Toolchain:
     if not isinstance(listed, list) or not all(isinstance(entry, str) for entry in listed):
         raise ToolchainError(f"{FILE_NAME} has a toolchain.components that is not a list of strings")
     return Toolchain(channel=channel, components=tuple(listed))
-
-
-def main(argv: list[str] | None = None) -> int:
-    """Print the channel, for the build scripts. The components reach them as
-    rustup flags through `tools/rust_build.py`."""
-    arguments = sys.argv[1:] if argv is None else argv
-    if len(arguments) != 2 or arguments[1] != "channel":
-        print(f"usage: {FILE_NAME}.py <source-directory> channel", file=sys.stderr)
-        return 2
-    print(read(Path(arguments[0])).channel)
-    return 0
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except ToolchainError as error:
-        print(f"rust-toolchain: {error}", file=sys.stderr)
-        sys.exit(1)

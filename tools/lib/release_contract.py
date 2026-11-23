@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """The contract a release commit holds to, checked locally and again in CI.
 
 A release is cut by tagging a commit `X.Y.Z-W`. For that tag to mean anything,
@@ -11,16 +10,14 @@ pushed from elsewhere cannot skip the check.
 
 from __future__ import annotations
 
-import argparse
 import sys
-from collections.abc import Callable
+from collections.abc import Iterable
 from pathlib import Path
 
-import commit_message
-import release
-from commit_message import CommitMessage
-from gitcmd import GitError, git_output
-from release import ReleaseError
+from . import commit_message, release
+from .commit_message import CommitMessage
+from .gitcmd import GitError, git_output
+from .release import ReleaseError
 
 RELEASE_FILES = (release.PKGVER_FILE, release.PKGREL_FILE)
 
@@ -75,30 +72,26 @@ def check_commit(tag: str, commit: str, repo: Path) -> list[str]:
     return problems + files_problems(contents[0], contents[1], tag)
 
 
-def command_tag(arguments: argparse.Namespace) -> int:
-    tag = release.strip_ref_prefix(arguments.ref)
+def check_tag(repo: Path, ref: str, commit: str) -> int:
+    """Check a tag against the commit it points at. Used by CI and by `just`."""
+    tag = release.strip_ref_prefix(ref)
     try:
         release.parse_tag(tag)
     except ReleaseError as error:
         return report(tag, [str(error)])
-    return report(tag, check_commit(tag, arguments.commit, arguments.repo))
+    return report(tag, check_commit(tag, commit, repo))
 
 
-def command_commit_msg(arguments: argparse.Namespace) -> int:
-    """The `commit-msg` hook: judge the message about to be written.
+def check_staged_message(repo: Path, message: CommitMessage) -> int:
+    """Judge the message a commit is about to be written with.
 
     A commit is a release commit when it changes `pkgver` or `pkgrel`, or when
     its subject already reads as a release tag. Either way the staged files
     decide which tag it claims to be.
     """
-    repo: Path = arguments.repo
-    message = commit_message.from_file(Path(arguments.message_file))
-    subject = message.subject
-
     changed = git_output(["diff", "--cached", "--name-only", "--diff-filter=M"], cwd=repo).split()
     touches_release_files = any(name in RELEASE_FILES for name in changed)
-    subject_reads_as_tag = _parses_as_tag(subject)
-    if not touches_release_files and not subject_reads_as_tag:
+    if not touches_release_files and not parses_as_tag(message.subject):
         return 0
 
     contents: list[str] = []
@@ -106,23 +99,23 @@ def command_commit_msg(arguments: argparse.Namespace) -> int:
         try:
             contents.append(git_output(["show", f":{name}"], cwd=repo))
         except GitError:
-            return report(subject, [f"{name} is not in the index"])
+            return report(message.subject, [f"{name} is not in the index"])
     try:
         staged = release.validate(contents[0].strip(), contents[1].strip())
     except ReleaseError as error:
-        return report(subject, [str(error)])
+        return report(message.subject, [str(error)])
 
     return report(staged.tag, message_problems(message, staged.tag))
 
 
-def command_pre_push(arguments: argparse.Namespace) -> int:
-    """The `pre-push` hook: judge every release-shaped tag in this push.
+def check_pushed_refs(repo: Path, lines: Iterable[str]) -> int:
+    """Judge every release-shaped tag in a push.
 
     git feeds one `<local-ref> <local-sha> <remote-ref> <remote-sha>` line per
     ref. A deletion carries an all-zero local sha and has nothing to verify.
     """
     status = 0
-    for line in sys.stdin.read().splitlines():
+    for line in lines:
         fields = line.split()
         if len(fields) < 2:
             continue
@@ -130,41 +123,15 @@ def command_pre_push(arguments: argparse.Namespace) -> int:
         if not local_ref.startswith("refs/tags/"):
             continue
         tag = release.strip_ref_prefix(local_ref)
-        if not _parses_as_tag(tag) or set(local_sha) == {"0"}:
+        if not parses_as_tag(tag) or set(local_sha) == {"0"}:
             continue
-        status |= report(tag, check_commit(tag, local_sha, arguments.repo))
+        status |= report(tag, check_commit(tag, local_sha, repo))
     return status
 
 
-def _parses_as_tag(candidate: str) -> bool:
+def parses_as_tag(candidate: str) -> bool:
     try:
         release.parse_tag(candidate)
     except ReleaseError:
         return False
     return True
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", type=Path, default=Path.cwd(), help="the checkout to read")
-    subcommands = parser.add_subparsers(dest="command", required=True)
-
-    tag_parser = subcommands.add_parser("tag", help="check a tag against an existing commit")
-    tag_parser.add_argument("ref", help="the tag, or the refs/tags/... ref")
-    tag_parser.add_argument("commit", nargs="?", default="HEAD", help="the commit the tag points at")
-    tag_parser.set_defaults(run=command_tag)
-
-    commit_msg_parser = subcommands.add_parser("commit-msg", help="the commit-msg hook")
-    commit_msg_parser.add_argument("message_file")
-    commit_msg_parser.set_defaults(run=command_commit_msg)
-
-    pre_push_parser = subcommands.add_parser("pre-push", help="the pre-push hook, reading refs on stdin")
-    pre_push_parser.set_defaults(run=command_pre_push)
-
-    arguments = parser.parse_args(argv)
-    run: Callable[[argparse.Namespace], int] = arguments.run
-    return run(arguments)
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -21,9 +21,8 @@ import shutil
 import sys
 from pathlib import Path
 
-import layout
-import opam
-from run import CommandError, require, run
+from lib import layout, opam
+from lib.run import CommandError, require, run
 
 PROGRAMS = ("why3", "why3find")
 

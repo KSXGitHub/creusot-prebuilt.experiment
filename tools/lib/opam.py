@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from take import drop_while, take_balanced, take_literal, take_quoted, take_until
+from .take import drop_while, take_balanced, take_literal, take_quoted, take_until
 
 FILE_NAME = "creusot-deps.opam"
 PIN_DEPENDS = "pin-depends:"

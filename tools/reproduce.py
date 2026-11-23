@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from take import take_literal, take_while
+from lib.take import take_literal, take_while
 
 HEX = frozenset("0123456789abcdef")
 DIGEST_LENGTH = 64

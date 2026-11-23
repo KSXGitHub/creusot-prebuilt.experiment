@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """What the Rust half of the build has to work out before cargo runs.
 
 Three things here were shell. The host triple was `rustc -vV | sed`, written
@@ -10,14 +9,11 @@ makes them the most consequential strings in the build.
 
 from __future__ import annotations
 
-import argparse
 import os
 import subprocess
-import sys
 from pathlib import Path
 
-import rust_toolchain
-from take import take_literal
+from .take import take_literal
 
 HOST_FIELD = "host: "
 
@@ -71,62 +67,3 @@ def remap_flags(source: Path) -> str:
         "rustup home": _home("RUSTUP_HOME", ".rustup"),
     }
     return " ".join(f"--remap-path-prefix={real[name]}={fixed}" for name, fixed in REMAPPED_TO.items())
-
-
-def command_host(_: argparse.Namespace) -> int:
-    print(host_triple())
-    return 0
-
-
-def command_packages(arguments: argparse.Namespace) -> int:
-    target = arguments.target or host_triple()
-    packages = packages_for(target, host_triple())
-    if not set(SHIPPED_FOR_THE_HOST_ONLY) <= set(packages):
-        skipped = ", ".join(SHIPPED_FOR_THE_HOST_ONLY)
-        print(f"rust-build: {target} is not the host, so {skipped} is skipped", file=sys.stderr)
-    print(" ".join(f"-p {package}" for package in packages))
-    return 0
-
-
-def command_component_flags(arguments: argparse.Namespace) -> int:
-    toolchain = rust_toolchain.read(arguments.source)
-    print(" ".join(f"-c {component}" for component in toolchain.components))
-    return 0
-
-
-def command_rustflags(arguments: argparse.Namespace) -> int:
-    print(remap_flags(arguments.source))
-    return 0
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    subcommands = parser.add_subparsers(dest="command", required=True)
-
-    host = subcommands.add_parser("host", help="the triple rustc reports for itself")
-    host.set_defaults(run=command_host)
-
-    packages = subcommands.add_parser("packages", help="the cargo -p flags for a target")
-    packages.add_argument("--target", default="", help="the target triple; this host's when empty")
-    packages.set_defaults(run=command_packages)
-
-    components = subcommands.add_parser("component-flags", help="the rustup -c flags the tag asks for")
-    components.add_argument("--source", type=Path, required=True, help="the Creusot checkout")
-    components.set_defaults(run=command_component_flags)
-
-    rustflags = subcommands.add_parser("rustflags", help="the --remap-path-prefix flags")
-    rustflags.add_argument("--source", type=Path, required=True, help="the Creusot checkout")
-    rustflags.set_defaults(run=command_rustflags)
-
-    arguments = parser.parse_args(argv)
-    run = arguments.run
-    result = run(arguments)
-    return result if isinstance(result, int) else 0
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except rust_toolchain.ToolchainError as error:
-        print(f"rust-build: {error}", file=sys.stderr)
-        sys.exit(1)

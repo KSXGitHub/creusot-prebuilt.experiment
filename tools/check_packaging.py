@@ -12,9 +12,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-import layout
-import manifest
-import package
+from lib import layout, manifest, packaging
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,18 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     first = (plan.dist / manifest.CHECKSUMS).read_text(encoding="utf-8")
 
     with tempfile.TemporaryDirectory() as scratch:
-        second = Path(scratch) / "dist"
-        package.main(
-            [
-                "--repo",
-                str(plan.repo),
-                "--source",
-                str(plan.source),
-                "--dist",
-                str(second),
-                *(["--target", target] if target else []),
-            ]
-        )
+        second = packaging.write_archives(plan, dist=Path(scratch) / "dist", target=target)
         again = (second / manifest.CHECKSUMS).read_text(encoding="utf-8")
 
     if first != again:

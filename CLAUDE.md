@@ -14,20 +14,30 @@ everything in the tree exists to produce one or to check that it is correct.
 - **`justfile`** is the entry point for every task. A recipe names a script and
   passes it arguments.
 - **`scripts/*.bash`** give each task a name that can be run by hand as well as
-  through `just`. Each is a wrapper: it sources `scripts/lib/common.bash` and
-  hands its arguments to a module in `tools/`. A script that grows a decision,
+  through `just`. Each is a wrapper: it sources `scripts/lib/tool.bash` and
+  hands its arguments to a command in `tools/`. A script that grows a decision,
   or reaches for `grep`, `sed` or `awk` to take a string apart, is a script
   doing work that belongs in `tools/`.
 - **`.githooks/*`** are one line each, and call `tools/githook.py`.
-- **`tools/*.py`** do the work: the parses, the decisions, the toolchain
-  invocations and the archive writing. Some of it runs in CI, some in a git
-  hook and some from a build script, which is why the directory is not named
-  after any one of them. They are type-annotated throughout and checked by
-  `mypy --strict`. A module with an `if __name__ == "__main__":` block carries
-  `#!/usr/bin/env python3` and mode 755, so it can be run by name; a module
-  that is only imported carries neither, and ruff's `EXE` rules reject one
-  without the other.
-- **`install.py`** is the consumer's half of `tools/manifest.py`, and is uploaded
+- **`tools/*.py`** are the commands. Each is run and none is imported, so each
+  carries `#!/usr/bin/env python3` and mode 755, and each holds only its
+  argument parsing and a call into the library.
+- **`tools/lib/*.py`** are the library: the parses, the decisions, the
+  toolchain invocations and the archive writing. Each is imported and none is
+  run, so none carries a shebang or the executable bit. Some of it runs in CI,
+  some in a git hook and some from a build script, which is why neither
+  directory is named after any one of them.
+
+Which of the two a Python file is can be told from where it sits rather than
+from reading it, and ruff's `EXE` rules reject a shebang without the executable
+bit or the bit without a shebang. Everything is type-annotated and checked by
+`mypy --strict`. Where a command would otherwise be imported, the work goes
+into the library and the command keeps its argument parsing: `tools/package.py`
+over `tools/lib/packaging.py` is that shape, and so is `tools/verify_release.py`
+over `tools/lib/release_contract.py`. Give the two different names, because a
+command and a library of the same name are both importable from a command and
+the wrong one wins.
+- **`install.py`** is the consumer's half of `tools/lib/manifest.py`, and is uploaded
   with each release. It reads `release.json` rather than repeating what the
   manifest says.
 
@@ -40,12 +50,13 @@ and the list it is given belong on the same side of the boundary.
 ## Taking a string apart
 
 Where a string has to be parsed, the parse is built from the `take_*` functions
-in `tools/take.py`. Each is offered a string and either consumes a prefix and hands
+in `tools/lib/take.py`. Each is offered a string and either consumes a prefix and hands
 back the remainder, or declines; a parse that owns its input finishes by
-requiring the remainder to be empty. `tools/github_text.py` and `tools/opam.py` are
+requiring the remainder to be empty. `tools/lib/github_text.py` and
+`tools/lib/opam.py` are
 written that way.
 
-A regex is right for an anchored, total check. `tools/release.py` uses two, for
+A regex is right for an anchored, total check. `tools/lib/release.py` uses two, for
 `pkgver` and `pkgrel`, and they should stay. A regex is wrong for a scan,
 because what a scan gets wrong is boundaries and repetition, which is exactly
 what a regex hides. The two scanners here replaced regexes that reported two of
@@ -55,12 +66,12 @@ neither fault was visible by reading.
 Where the standard library already parses the format, use it rather than writing
 a parser. `rust-toolchain` is TOML and goes through `tomllib`; `release.json`
 goes through `json`. opam's file format has no reader in the standard library,
-which is the reason `tools/opam.py` exists.
+which is the reason `tools/lib/opam.py` exists.
 
 ## The asset table has one definition
 
-`tools/manifest.py` says which built file goes into which asset and where that
-asset unpacks. `tools/package.py` writes `release.json` from it,
+`tools/lib/manifest.py` says which built file goes into which asset and where that
+asset unpacks. `tools/lib/packaging.py` writes `release.json` from it,
 `tools/release_body.py` renders the release body from that, and `install.py`
 reads it back. Adding a tool means editing the manifest and nothing else.
 
@@ -72,17 +83,17 @@ So do not write the asset list into `README.md`, into a workflow, or into
 A compiler writes the paths it was given into what it produces, so the
 directories the build uses are inputs to it:
 
-- `tools/layout.py` defaults `build_root` to `/var/tmp/creusot-prebuilt`.
+- `tools/lib/layout.py` defaults `build_root` to `/var/tmp/creusot-prebuilt`.
   `cargo-creusot` falls back to its own `CARGO_MANIFEST_DIR` when
   `CREUSOT_PATH` is unset, so the build directory ends up in the binary as a
   literal string.
-- `tools/layout.py` defaults `why3_switch` to `/opt/creusot-why3`. `why3`
+- `tools/lib/layout.py` defaults `why3_switch` to `/opt/creusot-why3`. `why3`
   compiles its data directory in and honours neither `WHY3DATA` nor being
   moved. `why3 --print-datadir` reports the prefix it was built at, which is
   the `_opam` inside `why3_switch`, and is why its asset has to be unpacked
   there. `tools/package.py` asks the built binary for that path and records it in
   `release.json`, so nothing else has to spell it.
-- `tools/rust_build.py` remaps three directories out of the Rust build:
+- `tools/lib/rust_build.py` remaps three directories out of the Rust build:
   the source, the cargo home and the rustup home. The last one matters because
   `creusot-rustc` is compiled against `rustc-dev`, whose sources sit under the
   toolchain, and without that remapping a build under `/root` and a build under
@@ -101,8 +112,8 @@ change to the release rather than to the build script.
 3. Tag the commit with the same identifier and push both.
 
 The `pre-push` hook and the first job of the deployment workflow both run
-`tools/release_contract.py`, so a tag that disagrees with the files it points at
-never reaches a build.
+`tools/lib/release_contract.py`, so a tag that disagrees with the files it
+points at never reaches a build.
 
 Install the hooks on a fresh checkout with `just install-git-hooks`.
 
@@ -143,7 +154,7 @@ that cannot.
   holds six assets" goes stale the moment a tool is added. Write "The release
   holds one asset per tool".
 - **Prefer a greppable predicate to a hand-maintained list.** "Every module
-  that imports `tools/take.py`" stays true; a list of module names does not.
+  that imports `tools/lib/take.py`" stays true; a list of module names does not.
 - **State a fact in exactly one place.** Paths, defaults and asset names have one
   home; everything else points at it.
 - **If a passage exists only to restate the code beneath it, delete it.** Length

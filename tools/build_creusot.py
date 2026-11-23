@@ -14,11 +14,9 @@ import shutil
 import sys
 from pathlib import Path
 
-import layout
-import rust_build
-import rust_toolchain
-from gitcmd import GitError
-from run import CommandError, require, run
+from lib import layout, rust_build, rust_toolchain
+from lib.gitcmd import GitError
+from lib.run import CommandError, require, run
 
 PROGRAMS = ("cargo-creusot", "creusot-install", "creusot-rustc")
 """Installed from the release build when the build produced them. `creusot-rustc`

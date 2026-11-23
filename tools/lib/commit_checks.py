@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import os
 
-import github_text
-from commit_message import CommitMessage
+from . import github_text
+from .commit_message import CommitMessage
 
 SUBJECT_LIMIT = 72
 LONG_SUBJECT_OPT_OUT = "CREUSOT_PREBUILT_ALLOW_LONG_SUBJECT"

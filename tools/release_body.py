@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import manifest
+from lib import manifest
 
 PREFIX_NOTES = {
     "creusot-data-home": "the Creusot data directory",

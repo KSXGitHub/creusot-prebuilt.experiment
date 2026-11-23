@@ -9,7 +9,7 @@ strict = true
 warn_unreachable = true
 
 [tool.ruff]
-include = ["tools/*.py", "install.py"]
+include = ["tools/**/*.py", "install.py"]
 target-version = "py311"
 line-length = 120
 

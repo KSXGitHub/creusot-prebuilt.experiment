@@ -22,7 +22,7 @@ uninstall-git-hooks:
 
 # Check that a tag, the commit it points at, and pkgver/pkgrel all agree
 verify-release ref commit="HEAD":
-    {{ python }} tools/release_contract.py tag '{{ ref }}' '{{ commit }}'
+    {{ python }} tools/verify_release.py '{{ ref }}' '{{ commit }}'
 
 # Put the pinned Creusot source where the build scripts read it
 source:

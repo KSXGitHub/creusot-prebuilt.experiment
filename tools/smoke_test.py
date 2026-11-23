@@ -15,8 +15,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-import layout
-from run import CommandError, output, run
+from lib import layout
+from lib.run import CommandError, output, run
 
 DEMO = "demo"
 COMA = Path("verif") / "demo_rlib" / "add_one.coma"

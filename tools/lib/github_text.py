@@ -15,7 +15,7 @@ character before it is not an ASCII word character. That is what keeps
 
 from __future__ import annotations
 
-from take import Taken, take_literal, take_run, take_while
+from .take import Taken, take_literal, take_run, take_while
 
 WORD = frozenset("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_")
 DIGITS = frozenset("0123456789")

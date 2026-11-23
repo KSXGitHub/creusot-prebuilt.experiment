@@ -20,8 +20,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-import release
-from gitcmd import git_output
+from . import release
+from .gitcmd import git_output
 
 # Not a temporary directory despite living under /var/tmp: the path is written
 # into the binaries, so it is fixed on purpose and shared between runs.
@@ -98,7 +98,18 @@ def _directory(variable: str, fallback: Path) -> Path:
 
 
 def repository_root() -> Path:
-    return Path(__file__).resolve().parent.parent
+    """The checkout this module lives in, found by climbing out of `tools/lib`.
+
+    The climb is checked rather than trusted: moving this module without
+    changing the count would otherwise read `pkgver` from the wrong directory,
+    or from none, and the failure would arrive somewhere else.
+    """
+    root = Path(__file__).resolve().parents[2]
+    if not (root / release.PKGVER_FILE).is_file():
+        raise release.ReleaseError(
+            f"{root} holds no {release.PKGVER_FILE}; this module has moved and the climb out of it has not"
+        )
+    return root
 
 
 def read(repo: Path | None = None) -> Layout:

@@ -10,9 +10,9 @@ from __future__ import annotations
 import shutil
 import sys
 
-import layout
-from gitcmd import GitError, git_output
-from run import CommandError, run
+from lib import layout
+from lib.gitcmd import GitError, git_output
+from lib.run import CommandError, run
 
 
 def main() -> int:
