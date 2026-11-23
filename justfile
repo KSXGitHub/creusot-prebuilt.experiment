@@ -64,7 +64,7 @@ fix-python:
 
 # Check the shell scripts and the git hooks
 check-shell:
-    shellcheck -x scripts/*.sh .githooks/commit-msg .githooks/pre-push .githooks/commit-msg-hooks/*
+    shellcheck -x scripts/*.sh .githooks/*
 
 # Every check that does not need a build
 check: check-python check-shell

@@ -15,30 +15,22 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+import commit_message
 import release
+from commit_message import CommitMessage
 from gitcmd import GitError, git_output
 from release import ReleaseError
 
 RELEASE_FILES = (release.PKGVER_FILE, release.PKGREL_FILE)
 
 
-def subject_and_body(message: str) -> tuple[str, list[str]]:
-    """Split a commit message into its subject and the non-blank lines after it."""
-    lines = message.split("\n")
-    for index, line in enumerate(lines):
-        if line.strip():
-            return line, [rest for rest in lines[index + 1 :] if rest.strip()]
-    return "", []
-
-
-def message_problems(message: str, tag: str) -> list[str]:
+def message_problems(message: CommitMessage, tag: str) -> list[str]:
     """Why this commit message does not announce `tag`, or nothing if it does."""
-    subject, body = subject_and_body(message)
     problems: list[str] = []
-    if subject != tag:
-        problems.append(f"the subject is {subject!r}, but the tag is {tag!r}")
-    if body:
-        problems.append(f"the message has a body, which a release commit may not: {body[0]!r}")
+    if message.subject != tag:
+        problems.append(f"the subject is {message.subject!r}, but the tag is {tag!r}")
+    if message.body:
+        problems.append(f"the message has a body, which a release commit may not: {message.body[0]!r}")
     return problems
 
 
@@ -70,8 +62,8 @@ def report(tag: str, problems: list[str]) -> int:
 
 def check_commit(tag: str, commit: str, repo: Path) -> list[str]:
     """Check a commit that already exists, by its message and its two files."""
-    message = git_output(["log", "-1", "--format=%B", commit], cwd=repo)
-    problems = message_problems(message, tag)
+    stored = commit_message.from_stored(git_output(["log", "-1", "--format=%B", commit], cwd=repo))
+    problems = message_problems(stored, tag)
     contents: list[str] = []
     for name in RELEASE_FILES:
         try:
@@ -99,8 +91,8 @@ def command_commit_msg(arguments: argparse.Namespace) -> int:
     decide which tag it claims to be.
     """
     repo: Path = arguments.repo
-    message = Path(arguments.message_file).read_text(encoding="utf-8")
-    subject, _ = subject_and_body(message)
+    message = commit_message.from_file(Path(arguments.message_file))
+    subject = message.subject
 
     changed = git_output(["diff", "--cached", "--name-only", "--diff-filter=M"], cwd=repo).split()
     touches_release_files = any(name in RELEASE_FILES for name in changed)

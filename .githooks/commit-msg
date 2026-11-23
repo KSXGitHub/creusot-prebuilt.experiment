@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-msg_file="$1"
-hooks_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/commit-msg-hooks"
-
-"$hooks_dir/bare-issue-refs" "$msg_file"
-"$hooks_dir/bare-mentions" "$msg_file"
-"$hooks_dir/multiline-subject" "$msg_file"
-"$hooks_dir/subject-length" "$msg_file"
-"$hooks_dir/release-contract" "$msg_file"
+root=$(git rev-parse --show-toplevel)
+exec python3 "$root/ci/githook.py" --repo "$root" commit-msg "$1"
