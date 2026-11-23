@@ -56,6 +56,9 @@ jobs:
       - name: Check the shell scripts
         run: just check-shell
 
+      - name: Run the unit tests
+        run: just test
+
   build:
     name: Build
 

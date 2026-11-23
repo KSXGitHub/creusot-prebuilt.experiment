@@ -70,8 +70,12 @@ fix-python:
 check-shell:
     shellcheck -x scripts/*.bash scripts/lib/*.bash .githooks/*
 
+# Run the unit tests
+test:
+    PYTHONPATH=tools {{ python }} -m unittest discover --start-directory tests
+
 # Every check that does not need a build
-check: check-python check-shell
+check: check-python check-shell test
 
 # Remove the build tree and the archives, leaving the source checkout alone
 clean:

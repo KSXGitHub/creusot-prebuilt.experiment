@@ -2,14 +2,14 @@
 # ruff read their configuration from it.
 
 [tool.mypy]
-files = ["tools", "install.py"]
+files = ["tools", "install.py", "tests"]
 mypy_path = "tools"
 python_version = "3.11"
 strict = true
 warn_unreachable = true
 
 [tool.ruff]
-include = ["tools/**/*.py", "install.py"]
+include = ["tools/**/*.py", "install.py", "tests/**/*.py"]
 target-version = "py311"
 line-length = 120
 
@@ -30,3 +30,6 @@ ignore = ["S603", "S607"]
 # `install.py` builds an https URL out of its own arguments and opens it, which
 # is how it downloads a release asset.
 "install.py" = ["S310"]
+# A test narrows a type with `assert`. S101 rejects one because `python -O`
+# strips it, which the test run never does.
+"tests/**/*.py" = ["S101"]
