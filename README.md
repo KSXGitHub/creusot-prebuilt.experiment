@@ -21,8 +21,9 @@ changes while the upstream version does not.
 ## What a release holds
 
 One archive per tool, and no bundle of several. A task that only translates a
-crate to Coma can take the two tools it needs and leave the prover framework
-alone. The release notes list every asset with its size and what it holds.
+crate to Coma can take the tools it needs and leave the prover framework
+undownloaded. The release notes list every asset with its size and what it
+holds.
 
 Each archive unpacks at one directory and needs no further moving:
 
@@ -59,9 +60,9 @@ latest, and `--data-home <dir>` puts the Creusot half somewhere of your
 choosing.
 
 To install by hand instead, download an archive and unpack it at the directory
-the table above gives for its prefix. The `why3` asset additionally has to be
-reachable as `$CREUSOT_DATA_HOME/bin/why3`, because that is where
-`cargo-creusot` looks for it.
+[What a release holds](#what-a-release-holds) gives for its prefix. The `why3`
+asset additionally has to be reachable as `$CREUSOT_DATA_HOME/bin/why3`, because
+that is where `cargo-creusot` looks for it.
 
 ### What you need
 

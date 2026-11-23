@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Install prebuilt Creusot tools from a release of this repository.
 
-Each tool is a separate asset, so a task that only needs `cargo creusot --only
-coma` can take the two it needs and leave the 36 MB prover framework alone. The
-release describes itself in `release.json`: this script reads which assets exist,
-where each one unpacks, and what each one's checksum is, and hardcodes none of
-it.
+Each tool is a separate asset, so a task that only translates a crate to Coma can
+take the tools it needs and leave the prover framework undownloaded. The release
+describes itself in `release.json`: this script reads which assets exist, where
+each one unpacks and what each one's checksum is, and hardcodes none of it.
 
     install.py --list
     install.py cargo-creusot creusot-rustc
@@ -203,7 +202,7 @@ def install_asset(asset: AssetDescription, source: Source, prefix: Path, dry_run
 
 
 def link_into_data_bin(data: Path, target: Path) -> None:
-    """Put a tool `cargo-creusot` spawns where it looks for it: `$DATA/bin`."""
+    """Put a tool `cargo-creusot` spawns where it looks: the data directory's `bin`."""
     link = data / "bin" / target.name
     link.parent.mkdir(parents=True, exist_ok=True)
     if link.is_symlink() or link.exists():
@@ -266,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
     if arguments.dry_run:
         return 0
 
-    # `cargo-creusot` spawns a tool by looking in `$DATA/bin`, and an asset that
+    # `cargo-creusot` spawns a tool by looking in the data directory's `bin`, and an asset that
     # unpacks somewhere else has to be reachable from there. Only the programs
     # this run unpacked are linked, so an unrelated binary that already sits
     # beside them is left alone.

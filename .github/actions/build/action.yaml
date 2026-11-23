@@ -25,8 +25,10 @@ runs:
       run: |
         sudo apt-get update
         # libgmp-dev and zlib1g-dev back the zarith and camlzip opam packages;
-        # opam reaches for rsync to pin a package that lives in a directory.
-        sudo apt-get install -y libgmp-dev zlib1g-dev rsync
+        # opam runs rsync to pin a package that lives in a directory, and
+        # refuses to start at all without bubblewrap, which is what it builds
+        # each package inside.
+        sudo apt-get install -y libgmp-dev zlib1g-dev rsync bubblewrap
 
     - name: Install opam
       shell: bash
@@ -45,9 +47,9 @@ runs:
     - name: Create the directory the Why3 switch is built in
       shell: bash
       run: |
-        # why3 compiles its data directory in, so the build has to happen at the
-        # path the asset will be unpacked at. Only root may write to /opt, so
-        # the directory is made here and handed to the runner.
+        # why3 compiles its data directory in, so the switch has to be built at
+        # the fixed directory whose `_opam` the asset is unpacked at. Only root
+        # may write to /opt, so it is created here and handed to the runner.
         sudo install -d -o "$(id -u)" -g "$(id -g)" /opt/creusot-why3
 
     - name: Install just

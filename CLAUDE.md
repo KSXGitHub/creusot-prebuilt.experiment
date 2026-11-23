@@ -41,7 +41,7 @@ So do not write the asset list into `README.md`, into a workflow, or into
 
 - A Rust binary records the directory it was compiled in. `cargo-creusot` falls
   back to its own `CARGO_MANIFEST_DIR` when `CREUSOT_PATH` is unset, so the
-  build directory is baked into the binary.
+  build directory ends up in the binary as a literal string.
 - `why3` compiles its data directory in and honours neither `WHY3DATA` nor
   being moved. `why3 --print-datadir` reports the prefix it was built at, which
   is the `_opam` inside `WHY3_SWITCH`, and is why its asset has to be unpacked

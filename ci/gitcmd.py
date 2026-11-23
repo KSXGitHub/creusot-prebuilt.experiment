@@ -13,9 +13,8 @@ class GitError(Exception):
 def git_output(args: list[str], cwd: Path | None = None) -> str:
     """Run `git` with the given arguments and return its standard output.
 
-    The output keeps whatever trailing newline git wrote: a caller that compares
-    a commit message needs those bytes, and a caller that wants a single line
-    strips them itself.
+    The output keeps whatever trailing newline git wrote. A caller comparing a
+    commit message needs those bytes; a caller reading one line strips them.
     """
     process = subprocess.run(
         ["git", *args],

@@ -30,7 +30,7 @@ HOST=$(rustc -vV | sed -n 's/^host: //p')
 # `librustc_driver-<hash>.so` out of the toolchain at run time. rustup ships
 # `rustc-dev` for the host triple only, so `creusot-rustc` can be built for the
 # host's own triple and for no other. `creusot-dev-config` is a helper for
-# hacking on Creusot itself and is deliberately not shipped.
+# working on Creusot itself and is not shipped.
 PACKAGES=(-p cargo-creusot -p creusot-install)
 if [ "$TARGET" = "$HOST" ]; then
   PACKAGES+=(-p creusot-rustc)
@@ -45,9 +45,10 @@ export CARGO_TARGET_DIR="$CARGO_TARGET"
 export RUSTFLAGS="--remap-path-prefix=$SRC=/build/creusot --remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/build/cargo"
 
 cargo "+$CHANNEL" build --release --locked --target "$TARGET" "${PACKAGES[@]}"
-# `prelude-generator` only runs here, to generate the prelude below, and is not
-# shipped: nothing in Creusot invokes it at run time, and the templates it reads
-# live in the source tree. So build it for the host, where it is sure to run.
+# `prelude-generator` only runs during this build, to generate the Coma prelude,
+# and is not shipped: nothing in Creusot invokes it at run time, and the
+# templates it reads live in the source tree. So build it for the host, where it
+# is sure to run.
 cargo "+$CHANNEL" build --release --locked --target "$HOST" -p prelude-generator
 
 bin=$CARGO_TARGET/$TARGET/release
@@ -67,9 +68,9 @@ CARGO_MANIFEST_DIR="$SRC/prelude-generator" "$CARGO_TARGET/$HOST/release/prelude
 mkdir -p "$out/share/why3find"
 cp -r "$SRC/target/creusot/packages" "$out/share/why3find/"
 
-# why3find.json is the why3find configuration naming that prelude;
-# creusot_why3.conf is the solver configuration `creusot-install why3-conf`
-# expands into ~/.config/creusot/why3.conf.
+# why3find.json is what `cargo creusot new` seeds a project with;
+# creusot_why3.conf is the solver configuration `cargo-creusot` hands to why3 as
+# WHY3CONFIG. Both are read from the Creusot data directory.
 #
 # `creusot-std` and its siblings are not copied: a released `creusot-std` comes
 # from crates.io, and those sources are only consulted through CREUSOT_PATH when
