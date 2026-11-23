@@ -59,7 +59,7 @@ def read_file(root: Path, name: str) -> str:
     except OSError as error:
         raise ReleaseError(f"cannot read {name}: {error}") from error
     stripped = text.strip()
-    if text != stripped + "\n":
+    if text != stripped + "\n" or "\n" in stripped:
         raise ReleaseError(f"{name} must hold one line and end with a newline")
     return stripped
 
