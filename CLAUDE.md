@@ -13,24 +13,26 @@ everything in the tree exists to produce one or to check that it is correct.
 
 - **`justfile`** is the entry point for every task. A recipe names a script and
   passes it arguments.
-- **`scripts/*.sh`** invoke the toolchains. They are the places that run
-  `cargo`, `opam`, `rustup`, and `git`, and they hold no decisions beyond the
-  conditionals those invocations need. A script reaching for `grep`, `sed` or
-  `awk` to take a string apart is a sign the work belongs in `tools/`.
+- **`scripts/*.bash`** give each task a name that can be run by hand as well as
+  through `just`. Each is a wrapper: it sources `scripts/lib/common.bash` and
+  hands its arguments to a module in `tools/`. A script that grows a decision,
+  or reaches for `grep`, `sed` or `awk` to take a string apart, is a script
+  doing work that belongs in `tools/`.
 - **`.githooks/*`** are one line each, and call `tools/githook.py`.
-- **`tools/*.py`** hold the computation and the decision trees: which file
-  belongs to which asset, what makes a release commit valid, how an archive is
-  written so that two runs produce the same bytes. Some of it runs in CI, some
-  in a git hook and some from a build script, which is why the directory is not
-  named after any one of them. They are type-annotated throughout and checked by
+- **`tools/*.py`** do the work: the parses, the decisions, the toolchain
+  invocations and the archive writing. Some of it runs in CI, some in a git
+  hook and some from a build script, which is why the directory is not named
+  after any one of them. They are type-annotated throughout and checked by
   `mypy --strict`.
 - **`install.py`** is the consumer's half of `tools/manifest.py`, and is uploaded
   with each release. It reads `release.json` rather than repeating what the
   manifest says.
 
-A new piece of logic goes wherever it already fits. Shell that grows a
-decision tree belongs in `tools/`; Python that only spawns one program belongs in a
-script.
+Everything the build decides is in Python, including the toolchain invocations.
+That is not for tidiness: while the computation was in Python and the
+invocations in shell, the argument lists were printed as strings and split back
+apart with `read -r -a`, which a path with a space would have broken. A command
+and the list it is given belong on the same side of the boundary.
 
 ## Taking a string apart
 
@@ -55,9 +57,9 @@ which is the reason `tools/opam.py` exists.
 ## The asset table has one definition
 
 `tools/manifest.py` says which built file goes into which asset and where that
-asset unpacks. `tools/package.py` writes `release.json` from it, `tools/release_notes.py`
-renders the release body from that, and `install.py` reads it back. Adding a
-tool means editing the manifest and nothing else.
+asset unpacks. `tools/package.py` writes `release.json` from it,
+`tools/release_body.py` renders the release body from that, and `install.py`
+reads it back. Adding a tool means editing the manifest and nothing else.
 
 So do not write the asset list into `README.md`, into a workflow, or into
 `install.py`. A second copy is a second thing to forget.
@@ -67,17 +69,17 @@ So do not write the asset list into `README.md`, into a workflow, or into
 A compiler writes the paths it was given into what it produces, so the
 directories the build uses are inputs to it:
 
-- `scripts/common.sh` defaults `BUILD_ROOT` to `/var/tmp/creusot-prebuilt`.
+- `tools/layout.py` defaults `build_root` to `/var/tmp/creusot-prebuilt`.
   `cargo-creusot` falls back to its own `CARGO_MANIFEST_DIR` when
   `CREUSOT_PATH` is unset, so the build directory ends up in the binary as a
   literal string.
-- `scripts/common.sh` defaults `WHY3_SWITCH` to `/opt/creusot-why3`. `why3`
+- `tools/layout.py` defaults `why3_switch` to `/opt/creusot-why3`. `why3`
   compiles its data directory in and honours neither `WHY3DATA` nor being
   moved. `why3 --print-datadir` reports the prefix it was built at, which is
-  the `_opam` inside `WHY3_SWITCH`, and is why its asset has to be unpacked
+  the `_opam` inside `why3_switch`, and is why its asset has to be unpacked
   there. `tools/package.py` asks the built binary for that path and records it in
   `release.json`, so nothing else has to spell it.
-- `scripts/build-creusot.sh` remaps three directories out of the Rust build:
+- `tools/rust_build.py` remaps three directories out of the Rust build:
   the source, the cargo home and the rustup home. The last one matters because
   `creusot-rustc` is compiled against `rustc-dev`, whose sources sit under the
   toolchain, and without that remapping a build under `/root` and a build under
@@ -115,9 +117,11 @@ pull request whose whole diff is prose, but not a prose commit pushed to a pull
 request that also changes code: there the filter reads the whole diff. Such a
 push builds off the cache in about two minutes.
 
-A build script that is being executed must not be edited. Bash reads a script
+A bash script that is being executed must not be edited. Bash reads a script
 incrementally and seeks back to a byte offset between commands, so rewriting the
-file under a running build makes it resume in the middle of a line.
+file under a running build makes it resume in the middle of a line. Python reads
+a module once at import, so a module in `tools/` is safe to edit while it runs,
+and the wrappers in `scripts/` are short enough to be read in one go.
 
 ## Writing
 
@@ -135,8 +139,8 @@ that cannot.
 - **A count over a list that can grow is a second copy of it.** "The release
   holds six assets" goes stale the moment a tool is added. Write "The release
   holds one asset per tool".
-- **Prefer a greppable predicate to a hand-maintained list.** "Every script that
-  sources `common.sh`" stays true; a list of script names does not.
+- **Prefer a greppable predicate to a hand-maintained list.** "Every module
+  that imports `tools/take.py`" stays true; a list of module names does not.
 - **State a fact in exactly one place.** Paths, defaults and asset names have one
   home; everything else points at it.
 - **If a passage exists only to restate the code beneath it, delete it.** Length
@@ -158,6 +162,11 @@ walk, hook, cache, prefix and driver are terms, not figures.
 Do not use an em dash to join two clauses. It hides loose phrasing that a
 rewrite would expose. Restructure the sentence so each clause stands on its own
 rather than swapping the dash for another mark.
+
+Write prose in ASCII. A Unicode ellipsis is the one that keeps appearing; where
+the character itself is the subject, name it rather than print it, as the
+subject-length check does in describing what GitHub appends. The `✖` and `•` in
+the hooks' own output are deliberate terminal decoration and stay.
 
 ### Repeat the word; do not vary it
 

@@ -1,7 +1,15 @@
 """Render the body of a GitHub release from the metadata the build wrote.
 
-The asset table in a release is the same table `ci/manifest.py` holds, so the
-notes are generated rather than kept in step by hand.
+These are not release notes and do not try to be. Nothing here narrates a
+change: what changed upstream belongs to Creusot and is reached through the tag
+this body links, and what changed between two build revisions of one version is
+in this repository's commit log. What a consumer cannot get anywhere else is an
+inventory, and that is what this renders: every asset, where it unpacks, how to
+install a subset of them, what the build read, and how to check what was
+downloaded.
+
+The asset table is the one `tools/manifest.py` holds, so it is generated rather
+than kept in step by hand.
 """
 
 from __future__ import annotations

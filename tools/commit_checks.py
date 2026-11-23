@@ -124,8 +124,8 @@ def subject_length(message: CommitMessage) -> str | None:
 The subject is {length} characters; the limit is {SUBJECT_LIMIT}.
 
 GitHub truncates a subject past {SUBJECT_LIMIT} characters in its web UI: it cuts the
-line, appends a "…", and folds the overflow into the body behind another
-"…", so the commit reads as a mangled title/body split.
+line, appends an ellipsis, and folds the overflow into the body behind a
+second one, so the commit reads as a mangled title and body.
 
 Shorten the subject to {SUBJECT_LIMIT} characters or fewer (the conventional ideal is
 50). Move any detail that does not fit into the commit body: a blank line

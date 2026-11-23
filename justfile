@@ -26,30 +26,30 @@ verify-release ref commit="HEAD":
 
 # Put the pinned Creusot source where the build scripts read it
 source:
-    ./scripts/fetch-source.sh
+    ./scripts/fetch-source.bash
 
 # Build the Creusot binaries and the Coma prelude into build/creusot
 build-creusot target="":
-    ./scripts/build-creusot.sh {{ target }}
+    ./scripts/build-creusot.bash {{ target }}
 
 # Build Why3 and why3find into build/why3
 build-why3:
-    ./scripts/build-why3.sh
+    ./scripts/build-why3.bash
 
 # Slice the build tree into one archive per tool under dist/
 package target="":
-    ./scripts/package.sh {{ target }}
+    ./scripts/package.bash {{ target }}
 
 # Everything: fetch the source, build both halves, and write the archives
 build target="": source (build-creusot target) build-why3 (package target)
 
 # Slice the build tree a second time and check the archives come out identical
 check-packaging target="":
-    ./scripts/check-packaging.sh {{ target }}
+    ./scripts/check-packaging.bash {{ target }}
 
 # Install dist/ into a scratch directory and run every tool it put there
 smoke-test:
-    ./scripts/smoke-test.sh
+    ./scripts/smoke-test.bash
 
 # Compare what dist/ holds against the checksums a published release carries
 compare-release tag repository="KSXGitHub/creusot-prebuilt.experiment":
@@ -68,7 +68,7 @@ fix-python:
 
 # Check the shell scripts and the git hooks
 check-shell:
-    shellcheck -x scripts/*.sh .githooks/*
+    shellcheck -x scripts/*.bash scripts/lib/*.bash .githooks/*
 
 # Every check that does not need a build
 check: check-python check-shell

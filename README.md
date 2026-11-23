@@ -131,7 +131,7 @@ dropped.
 Two directories are part of the build rather than a matter of taste, because a
 Rust binary records the directory it was compiled in and `why3` records the
 prefix it was installed at. Building elsewhere produces different checksums.
-`scripts/common.sh` holds both defaults.
+`tools/layout.py` holds both defaults.
 
 ```bash
 just build

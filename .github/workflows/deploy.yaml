@@ -84,8 +84,8 @@ jobs:
           name: release-assets
           path: dist
 
-      - name: Write the release notes from what the build recorded
-        run: python3 tools/release_notes.py dist/release.json --repository "$GITHUB_REPOSITORY" > notes.md
+      - name: Describe the release from what the build recorded
+        run: python3 tools/release_body.py dist/release.json --repository "$GITHUB_REPOSITORY" > body.md
 
       - name: Create the release and upload every asset
         env:
@@ -94,5 +94,5 @@ jobs:
         run: |
           gh release create "$RELEASE_TAG" \
             --title "$RELEASE_TAG" \
-            --notes-file notes.md \
+            --notes-file body.md \
             dist/*

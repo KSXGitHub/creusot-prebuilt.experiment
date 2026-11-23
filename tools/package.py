@@ -21,13 +21,14 @@ import tarfile
 from dataclasses import dataclass
 from pathlib import Path
 
+import layout
 import manifest
 import opam
 import release
+import rust_build
 import rust_toolchain
 from gitcmd import git_output
 from manifest import Asset, Member
-from take import take_literal
 
 
 @dataclass(frozen=True)
@@ -146,31 +147,24 @@ def build_asset(
     }
 
 
-def host_triple() -> str:
-    """The triple `rustc` reports for itself, read off its `key: value` output."""
-    output = subprocess.run(["rustc", "-vV"], capture_output=True, text=True, check=True).stdout
-    for line in output.splitlines():
-        field = take_literal(line, "host: ")
-        if field is not None:
-            return field[1].strip()
-    raise SystemExit("package: rustc reports no host triple")
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", type=Path, default=Path.cwd(), help="the checkout holding pkgver and pkgrel")
-    parser.add_argument("--build", type=Path, default=None, help="the assembled build tree (default: <repo>/build)")
-    parser.add_argument("--dist", type=Path, default=None, help="where the archives are written (default: <repo>/dist)")
-    parser.add_argument("--source", type=Path, required=True, help="the Creusot checkout the build came from")
+    # Every path defaults to what `tools/layout.py` says, so the usual call
+    # takes no arguments at all.
+    parser.add_argument("--repo", type=Path, default=None, help="the checkout holding pkgver and pkgrel")
+    parser.add_argument("--build", type=Path, default=None, help="the assembled build tree")
+    parser.add_argument("--dist", type=Path, default=None, help="where the archives are written")
+    parser.add_argument("--source", type=Path, default=None, help="the Creusot checkout the build came from")
     parser.add_argument("--target", default=None, help="the target triple (default: this host's)")
     arguments = parser.parse_args(argv)
 
-    repo: Path = arguments.repo
-    build: Path = arguments.build if arguments.build is not None else repo / "build"
-    dist: Path = arguments.dist if arguments.dist is not None else repo / "dist"
+    plan = layout.read(arguments.repo)
+    build: Path = arguments.build if arguments.build is not None else plan.stage
+    dist: Path = arguments.dist if arguments.dist is not None else plan.dist
+    source: Path = arguments.source if arguments.source is not None else plan.source
 
-    identity = release.read_release(repo)
-    facts = collect_facts(arguments.source, build, arguments.target or host_triple())
+    identity = plan.release
+    facts = collect_facts(source, build, arguments.target or rust_build.host_triple())
 
     shutil.rmtree(dist, ignore_errors=True)
     dist.mkdir(parents=True)
@@ -185,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     # preserving the checkout's own timestamp keeps dist/ a function of the
     # release alone.
     installer = dist / manifest.INSTALLER
-    shutil.copyfile(repo / manifest.INSTALLER, installer)
+    shutil.copyfile(plan.repo / manifest.INSTALLER, installer)
     installer.chmod(0o755)
     os.utime(installer, (facts.source_date_epoch, facts.source_date_epoch))
 

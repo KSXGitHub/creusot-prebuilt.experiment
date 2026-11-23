@@ -50,13 +50,13 @@ def read(source: Path) -> Toolchain:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Print one field, for the build scripts: `rust_toolchain.py <source> channel`."""
+    """Print the channel, for the build scripts. The components reach them as
+    rustup flags through `tools/rust_build.py`."""
     arguments = sys.argv[1:] if argv is None else argv
-    if len(arguments) != 2 or arguments[1] not in {"channel", "components"}:
-        print(f"usage: {FILE_NAME}.py <source-directory> channel|components", file=sys.stderr)
+    if len(arguments) != 2 or arguments[1] != "channel":
+        print(f"usage: {FILE_NAME}.py <source-directory> channel", file=sys.stderr)
         return 2
-    toolchain = read(Path(arguments[0]))
-    print(toolchain.channel if arguments[1] == "channel" else " ".join(toolchain.components))
+    print(read(Path(arguments[0])).channel)
     return 0
 
 
