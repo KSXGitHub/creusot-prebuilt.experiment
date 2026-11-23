@@ -20,6 +20,11 @@ PREFIX_NOTES = {
 }
 
 
+def human_size(size: int) -> str:
+    """A size a reader can compare at a glance, in the unit that suits it."""
+    return f"{size / 1e6:.1f} MB" if size >= 1_000_000 else f"{size / 1e3:.0f} kB"
+
+
 def render(metadata: dict[str, Any]) -> str:
     why3_prefix = metadata["why3_prefix"]
     lines = [
@@ -32,12 +37,12 @@ def render(metadata: dict[str, Any]) -> str:
     ]
     for asset in metadata["assets"]:
         where = PREFIX_NOTES[asset["prefix"]].format(why3_prefix=why3_prefix)
-        lines.append(f"| `{asset['file']}` | {where} | {asset['size'] / 1e6:.1f} MB | {asset['summary']} |")
+        lines.append(f"| `{asset['file']}` | {where} | {human_size(asset['size'])} | {asset['summary']} |")
     lines += [
         "",
-        "Every archive unpacks at the directory named above and needs no further moving.",
-        f"`why3` is the exception that has no choice: it compiles `{why3_prefix}` in,",
-        "so it reads its theories from there wherever it is run from.",
+        "Every archive unpacks at the directory its row names, and needs no further moving.",
+        f"`why3` is the one whose directory is fixed: it compiles `{why3_prefix}` in, so it",
+        "reads its theories from there wherever it is run from.",
         "",
         "## Installing",
         "",

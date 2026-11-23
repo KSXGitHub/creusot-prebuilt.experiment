@@ -157,6 +157,11 @@ class Source:
         return destination
 
 
+def human_size(size: int) -> str:
+    """A size a reader can compare at a glance, in the unit that suits it."""
+    return f"{size / 1e6:.1f} MB" if size >= 1_000_000 else f"{size / 1e3:.0f} kB"
+
+
 def sha256_of(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -187,7 +192,7 @@ def safe_members(archive: tarfile.TarFile, prefix: Path) -> list[tarfile.TarInfo
 
 def install_asset(asset: AssetDescription, source: Source, prefix: Path, dry_run: bool) -> list[str]:
     """Unpack one asset at its prefix and report the paths it put there."""
-    print(f"  {asset.name}: {asset.size / 1e6:.1f} MB into {prefix}")
+    print(f"  {asset.name}: {human_size(asset.size)} into {prefix}")
     if dry_run:
         return []
     with tempfile.TemporaryDirectory() as scratch:
@@ -240,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     if arguments.list:
         print(f"{description.tag} for {description.target}, built against {description.rust_channel}")
         for asset in description.assets:
-            print(f"  {asset.name:<16} {asset.size / 1e6:>6.1f} MB  {asset.summary}")
+            print(f"  {asset.name:<16} {human_size(asset.size):>9}  {asset.summary}")
         return 0
 
     if arguments.all:
