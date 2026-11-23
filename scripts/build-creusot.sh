@@ -17,11 +17,10 @@ TARGET=${1:-$(rustc -vV | sed -n 's/^host: //p')}
 
 cd "$SRC"
 CHANNEL=$(rust_channel)
-COMPONENTS=$(sed -n 's/^components *= *\[\(.*\)\]/\1/p' rust-toolchain | tr -d '" ' | tr ',' ' ')
-# Both expansions are meant to split: `rust-toolchain` lists the components
-# as one string and each needs its own `-c`.
-# shellcheck disable=SC2046,SC2086
-rustup toolchain install "$CHANNEL" --profile minimal --no-self-update $(printf -- '-c %s ' $COMPONENTS)
+read -r -a components <<< "$(rust_components)"
+# shellcheck disable=SC2046
+rustup toolchain install "$CHANNEL" --profile minimal --no-self-update \
+  $(printf -- '-c %s ' "${components[@]}")
 rustup target add --toolchain "$CHANNEL" "$TARGET"
 
 HOST=$(rustc -vV | sed -n 's/^host: //p')

@@ -35,9 +35,13 @@ source_date_epoch() {
   git -C "$SRC" log -1 --format=%ct
 }
 
-# The Rust toolchain the Creusot tag pins. `creusot-rustc` is a rustc driver and
-# loads `librustc_driver-<hash>.so` out of this toolchain at run time, so an
-# installation has to carry it under this exact name.
+# What the Creusot tag's `rust-toolchain` asks for. That file is TOML, so
+# ci/rust_toolchain.py reads it with a TOML parser rather than with sed, and is
+# the only place that knows where in the file to look.
 rust_channel() {
-  sed -n 's/^channel *= *"\(.*\)"/\1/p' "$SRC/rust-toolchain"
+  python3 "$REPO_ROOT/ci/rust_toolchain.py" "$SRC" channel
+}
+
+rust_components() {
+  python3 "$REPO_ROOT/ci/rust_toolchain.py" "$SRC" components
 }

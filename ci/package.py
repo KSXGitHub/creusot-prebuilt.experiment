@@ -14,7 +14,6 @@ import gzip
 import hashlib
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -23,15 +22,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import manifest
+import opam
 import release
+import rust_toolchain
 from gitcmd import git_output
 from manifest import Asset, Member
-
-# `creusot-deps.opam` names each pin twice, for example as
-# `"why3" {= "git-05bf4ddf"}` under `depends:` and as `"why3.git-05bf4ddf"` under
-# `pin-depends:`. The second form carries the package and the version in one
-# token, so that is the one read.
-WHY3_PIN_PATTERN = re.compile(r'"(?P<package>why3|why3find)\.(?P<version>[^"]+)"')
+from take import take_literal
 
 
 @dataclass(frozen=True)
@@ -44,23 +40,6 @@ class BuildFacts:
     source_date_epoch: int
     why3_prefix: str
     opam_pins: dict[str, str]
-
-
-def read_opam_pins(source: Path) -> dict[str, str]:
-    """The opam package versions the Creusot tag pins Why3 and why3find to."""
-    text = (source / "creusot-deps.opam").read_text(encoding="utf-8")
-    pins: dict[str, str] = {}
-    for match in WHY3_PIN_PATTERN.finditer(text):
-        pins[match.group("package")] = match.group("version")
-    return pins
-
-
-def read_rust_channel(source: Path) -> str:
-    text = (source / "rust-toolchain").read_text(encoding="utf-8")
-    match = re.search(r'^channel\s*=\s*"(?P<channel>[^"]+)"', text, re.MULTILINE)
-    if match is None:
-        raise SystemExit("package: rust-toolchain names no channel")
-    return match.group("channel")
 
 
 def read_why3_prefix(build: Path) -> str:
@@ -80,11 +59,11 @@ def read_why3_prefix(build: Path) -> str:
 def collect_facts(source: Path, build: Path, target: str) -> BuildFacts:
     return BuildFacts(
         target=target,
-        rust_channel=read_rust_channel(source),
+        rust_channel=rust_toolchain.read(source).channel,
         creusot_commit=git_output(["rev-parse", "HEAD"], cwd=source).strip(),
         source_date_epoch=int(git_output(["log", "-1", "--format=%ct"], cwd=source).strip()),
         why3_prefix=read_why3_prefix(build),
-        opam_pins=read_opam_pins(source),
+        opam_pins=opam.read_pins(source),
     )
 
 
@@ -168,11 +147,13 @@ def build_asset(
 
 
 def host_triple() -> str:
+    """The triple `rustc` reports for itself, read off its `key: value` output."""
     output = subprocess.run(["rustc", "-vV"], capture_output=True, text=True, check=True).stdout
-    match = re.search(r"^host: (?P<triple>.+)$", output, re.MULTILINE)
-    if match is None:
-        raise SystemExit("package: rustc reports no host triple")
-    return match.group("triple")
+    for line in output.splitlines():
+        field = take_literal(line, "host: ")
+        if field is not None:
+            return field[1].strip()
+    raise SystemExit("package: rustc reports no host triple")
 
 
 def main(argv: list[str] | None = None) -> int:
