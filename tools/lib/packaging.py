@@ -132,6 +132,34 @@ def build_asset(
     }
 
 
+INSTALLER_PIN = "PINNED_RELEASE: str | None = None"
+"""The assignment in `install.py` that `stamp_installer` replaces."""
+
+
+def stamp_installer(source: Path, destination: Path, tag: str) -> None:
+    """Write `install.py` out with `tag` as the release it installs by default.
+
+    The checkout's copy installs the newest release, which is the wrong default
+    for a copy uploaded to one: a consumer who downloads
+    `releases/download/<tag>/install.py` asked for `<tag>`, and the copy served
+    as `releases/latest/download/install.py` is the newest release's own. The
+    pin is a default rather than a lock, so `--release latest` still reaches the
+    newest from either copy.
+
+    Replacing an assignment leaves the uploaded file a plain script with nothing
+    to work out at run time. Renaming the constant in `install.py` would
+    otherwise upload an installer that still tracks the newest release, so the
+    assignment has to be there exactly once and what comes out has to compile.
+    """
+    text = source.read_text(encoding="utf-8")
+    found = text.count(INSTALLER_PIN)
+    if found != 1:
+        raise SystemExit(f"package: {source} holds {found} copies of {INSTALLER_PIN!r}, not one")
+    stamped = text.replace(INSTALLER_PIN, f'PINNED_RELEASE: str | None = "{tag}"')
+    compile(stamped, str(destination), "exec")
+    destination.write_text(stamped, encoding="utf-8")
+
+
 def write_archives(
     plan: layout.Layout,
     *,
@@ -160,11 +188,11 @@ def write_archives(
     shutil.rmtree(work)
 
     # The installer is uploaded beside the archives, so that a consumer who has
-    # the release has everything needed to read it. Copying rather than
+    # the release has everything needed to read it. Writing it out rather than
     # preserving the checkout's own timestamp keeps dist/ a function of the
     # release alone.
     installer = dist / manifest.INSTALLER
-    shutil.copyfile(plan.repo / manifest.INSTALLER, installer)
+    stamp_installer(plan.repo / manifest.INSTALLER, installer, identity.tag)
     installer.chmod(0o755)
     os.utime(installer, (facts.source_date_epoch, facts.source_date_epoch))
 

@@ -32,6 +32,16 @@ RELEASE_METADATA = "release.json"
 CREUSOT_DATA_HOME = "creusot-data-home"
 WHY3_PREFIX = "why3-prefix"
 
+LATEST = "latest"
+
+PINNED_RELEASE: str | None = None
+"""The release to install when `--release` is not given, or `None` for the newest.
+
+An `install.py` downloaded from a release carries that release's tag here, so
+it installs the release it came from rather than whatever is newest. Passing
+`--release latest` asks for the newest either way.
+"""
+
 
 def say(message: str = "") -> None:
     """Tell the person something.
@@ -235,7 +245,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("tools", nargs="*", metavar="TOOL", help="the tools to install")
     parser.add_argument("--all", action="store_true", help="install every tool in the release")
     parser.add_argument("--list", action="store_true", help="print the tools in the release and stop")
-    parser.add_argument("--release", default=None, metavar="TAG", help="which release (default: the latest)")
+    parser.add_argument(
+        "--release",
+        default=PINNED_RELEASE,
+        metavar="TAG",
+        help=f"which release to install, or {LATEST} for the newest (default: {PINNED_RELEASE or LATEST})",
+    )
     parser.add_argument("--repository", default=DEFAULT_REPOSITORY, help="owner/name to download from")
     parser.add_argument(
         "--from-dir",
@@ -250,7 +265,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="say what would be installed and stop")
     arguments = parser.parse_args(argv)
 
-    source = Source(arguments.repository, arguments.release, arguments.from_dir)
+    wanted_tag = None if arguments.release == LATEST else arguments.release
+    source = Source(arguments.repository, wanted_tag, arguments.from_dir)
     description = parse_release(source.read_bytes(RELEASE_METADATA).decode("utf-8"))
 
     if arguments.list:

@@ -15,7 +15,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from lib import checksums, layout
+from lib import checksums, layout, manifest
 from lib.console import say
 from lib.run import CommandError, output, run
 
@@ -51,7 +51,11 @@ def keep_only(root: Path, wanted: str) -> None:
 
 def check(plan: layout.Layout, work: Path) -> None:
     data = work / "data"
-    run([sys.executable, plan.repo / "install.py", "--from-dir", plan.dist, "--data-home", data, "--all"])
+    # dist/ holds the installer a release uploads, which differs from the
+    # checkout's copy in the release it installs by default. Running that one
+    # means the file a consumer downloads is the file this check exercises.
+    installer = plan.dist / manifest.INSTALLER
+    run([sys.executable, installer, "--from-dir", plan.dist, "--data-home", data, "--all"])
 
     driver = checksums.digest_of(installed_driver(data))[:16]
     keep_only(plan.smoke_root, driver)
