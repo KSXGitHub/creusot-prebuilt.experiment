@@ -4,7 +4,7 @@ on:
   push:
     tags:
       # <pkgver>-<pkgrel>: the Creusot version, then this repository's build
-      # revision of it. `ci/release_contract.py` checks the exact shape.
+      # revision of it. `tools/release_contract.py` checks the exact shape.
       - '[0-9]*.[0-9]*.[0-9]*-[0-9]*'
 
 permissions:
@@ -85,7 +85,7 @@ jobs:
           path: dist
 
       - name: Write the release notes from what the build recorded
-        run: python3 ci/release_notes.py dist/release.json --repository "$GITHUB_REPOSITORY" > notes.md
+        run: python3 tools/release_notes.py dist/release.json --repository "$GITHUB_REPOSITORY" > notes.md
 
       - name: Create the release and upload every asset
         env:

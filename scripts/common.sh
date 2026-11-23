@@ -36,12 +36,12 @@ source_date_epoch() {
 }
 
 # What the Creusot tag's `rust-toolchain` asks for. That file is TOML, so
-# ci/rust_toolchain.py reads it with a TOML parser rather than with sed, and is
+# tools/rust_toolchain.py reads it with a TOML parser rather than with sed, and is
 # the only place that knows where in the file to look.
 rust_channel() {
-  python3 "$REPO_ROOT/ci/rust_toolchain.py" "$SRC" channel
+  python3 "$REPO_ROOT/tools/rust_toolchain.py" "$SRC" channel
 }
 
 rust_components() {
-  python3 "$REPO_ROOT/ci/rust_toolchain.py" "$SRC" components
+  python3 "$REPO_ROOT/tools/rust_toolchain.py" "$SRC" components
 }

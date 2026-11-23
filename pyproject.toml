@@ -2,14 +2,14 @@
 # ruff read their configuration from it.
 
 [tool.mypy]
-files = ["ci", "install.py"]
-mypy_path = "ci"
+files = ["tools", "install.py"]
+mypy_path = "tools"
 python_version = "3.11"
 strict = true
 warn_unreachable = true
 
 [tool.ruff]
-include = ["ci/*.py", "install.py"]
+include = ["tools/*.py", "install.py"]
 target-version = "py311"
 line-length = 120
 

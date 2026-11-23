@@ -14,7 +14,7 @@ target=${1:-}
 second=$(mktemp -d)
 trap 'rm -rf "$second"' EXIT
 
-python3 "$REPO_ROOT/ci/package.py" \
+python3 "$REPO_ROOT/tools/package.py" \
   --repo "$REPO_ROOT" \
   --source "$SRC" \
   --dist "$second" \

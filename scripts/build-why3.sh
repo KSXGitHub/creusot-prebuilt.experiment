@@ -11,7 +11,7 @@
 # why3 compiles its data directory in and honours neither WHY3DATA nor being
 # moved: `why3 --print-datadir` always reports the prefix it was built at. So the
 # switch is created at a fixed $WHY3_SWITCH, and the asset has to be unpacked at
-# the `_opam` inside it. `ci/package.py` asks the built binary which path that
+# the `_opam` inside it. `tools/package.py` asks the built binary which path that
 # is rather than assuming one.
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"

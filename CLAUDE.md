@@ -16,29 +16,31 @@ everything in the tree exists to produce one or to check that it is correct.
 - **`scripts/*.sh`** invoke the toolchains. They are the places that run
   `cargo`, `opam`, `rustup`, and `git`, and they hold no decisions beyond the
   conditionals those invocations need. A script reaching for `grep`, `sed` or
-  `awk` to take a string apart is a sign the work belongs in `ci/`.
-- **`.githooks/*`** are one line each, and call `ci/githook.py`.
-- **`ci/*.py`** hold the computation and the decision trees: which file belongs
-  to which asset, what makes a release commit valid, how an archive is written
-  so that two runs produce the same bytes. They are type-annotated throughout
-  and checked by `mypy --strict`.
-- **`install.py`** is the consumer's half of `ci/manifest.py`, and is uploaded
+  `awk` to take a string apart is a sign the work belongs in `tools/`.
+- **`.githooks/*`** are one line each, and call `tools/githook.py`.
+- **`tools/*.py`** hold the computation and the decision trees: which file
+  belongs to which asset, what makes a release commit valid, how an archive is
+  written so that two runs produce the same bytes. Some of it runs in CI, some
+  in a git hook and some from a build script, which is why the directory is not
+  named after any one of them. They are type-annotated throughout and checked by
+  `mypy --strict`.
+- **`install.py`** is the consumer's half of `tools/manifest.py`, and is uploaded
   with each release. It reads `release.json` rather than repeating what the
   manifest says.
 
 A new piece of logic goes wherever it already fits. Shell that grows a
-decision tree belongs in `ci/`; Python that only spawns one program belongs in a
+decision tree belongs in `tools/`; Python that only spawns one program belongs in a
 script.
 
 ## Taking a string apart
 
 Where a string has to be parsed, the parse is built from the `take_*` functions
-in `ci/take.py`. Each is offered a string and either consumes a prefix and hands
+in `tools/take.py`. Each is offered a string and either consumes a prefix and hands
 back the remainder, or declines; a parse that owns its input finishes by
-requiring the remainder to be empty. `ci/github_text.py` and `ci/opam.py` are
+requiring the remainder to be empty. `tools/github_text.py` and `tools/opam.py` are
 written that way.
 
-A regex is right for an anchored, total check. `ci/release.py` uses two, for
+A regex is right for an anchored, total check. `tools/release.py` uses two, for
 `pkgver` and `pkgrel`, and they should stay. A regex is wrong for a scan,
 because what a scan gets wrong is boundaries and repetition, which is exactly
 what a regex hides. The two scanners here replaced regexes that reported two of
@@ -48,12 +50,12 @@ neither fault was visible by reading.
 Where the standard library already parses the format, use it rather than writing
 a parser. `rust-toolchain` is TOML and goes through `tomllib`; `release.json`
 goes through `json`. opam's file format has no reader in the standard library,
-which is the reason `ci/opam.py` exists.
+which is the reason `tools/opam.py` exists.
 
 ## The asset table has one definition
 
-`ci/manifest.py` says which built file goes into which asset and where that
-asset unpacks. `ci/package.py` writes `release.json` from it, `ci/release_notes.py`
+`tools/manifest.py` says which built file goes into which asset and where that
+asset unpacks. `tools/package.py` writes `release.json` from it, `tools/release_notes.py`
 renders the release body from that, and `install.py` reads it back. Adding a
 tool means editing the manifest and nothing else.
 
@@ -73,7 +75,7 @@ directories the build uses are inputs to it:
   compiles its data directory in and honours neither `WHY3DATA` nor being
   moved. `why3 --print-datadir` reports the prefix it was built at, which is
   the `_opam` inside `WHY3_SWITCH`, and is why its asset has to be unpacked
-  there. `ci/package.py` asks the built binary for that path and records it in
+  there. `tools/package.py` asks the built binary for that path and records it in
   `release.json`, so nothing else has to spell it.
 - `scripts/build-creusot.sh` remaps three directories out of the Rust build:
   the source, the cargo home and the rustup home. The last one matters because
@@ -94,7 +96,7 @@ change to the release rather than to the build script.
 3. Tag the commit with the same identifier and push both.
 
 The `pre-push` hook and the first job of the deployment workflow both run
-`ci/release_contract.py`, so a tag that disagrees with the files it points at
+`tools/release_contract.py`, so a tag that disagrees with the files it points at
 never reaches a build.
 
 Install the hooks on a fresh checkout with `just install-git-hooks`.
@@ -186,11 +188,11 @@ can reach: an asset, a tool, a command, an upstream project.
 
 A heading may switch audience where the reader has to clone to go further, which
 is what `README.md` does for building and for reproducing a release. Outside
-such a section, a justfile recipe, a script in `scripts/` and a file in `ci/`
+such a section, a justfile recipe, a script in `scripts/` and a file in `tools/`
 are all things the reader does not have.
 
 Everything else is contributor-only and may say whatever is useful: this guide,
-the comments in the scripts, and the docstrings in `ci/`.
+the comments in the scripts, and the docstrings in `tools/`.
 
 ### Re-read new prose before committing
 
