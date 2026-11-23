@@ -1,4 +1,4 @@
-# creusot-prebuilt.experiment
+# creusot-prebuilt
 
 Prebuilt binaries of [Creusot](https://github.com/creusot-rs/creusot), the
 deductive verifier for Rust, and of the Why3 framework it discharges proofs
