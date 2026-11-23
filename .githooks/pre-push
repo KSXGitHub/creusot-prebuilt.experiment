@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# pre-push hook: hold every release-shaped tag in this push to the release
+# contract, so a tag that the deployment workflow would reject never reaches the
+# remote. git feeds the refs on standard input.
+set -euo pipefail
+
+root=$(git rev-parse --show-toplevel)
+exec python3 "$root/ci/release_contract.py" --repo "$root" pre-push

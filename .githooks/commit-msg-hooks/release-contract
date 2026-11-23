@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# commit-msg check: hold a release commit to the contract the deployment
+# workflow checks again. A commit is a release commit when it changes `pkgver`
+# or `pkgrel`, or when its subject already reads as a release tag.
+set -euo pipefail
+
+msg_file="$1"
+root=$(git rev-parse --show-toplevel)
+exec python3 "$root/ci/release_contract.py" --repo "$root" commit-msg "$msg_file"
