@@ -53,17 +53,16 @@ fi
 
 # Keep everything under lib/why3 except what is only needed to *compile* against
 # Why3: the `.cmx` / `.cmi` / `.cmt` / `.cmti` interfaces, `.ml` / `.mli` sources
-# and `.a` / `.o` / `.cma` archives. That is 131 MB down to 20 MB. Excluding by
-# extension rather than selecting `*.cmxs` matters: lib/why3 also holds the
-# `why3server` executable, which why3 spawns to run the solvers. Without it every
-# solver call hangs for ever, with no error.
+# and `.a` / `.o` / `.cma` archives. For Why3 1.8.2 that is 131 MB down to 21 MB.
+# Excluding by extension rather than selecting `*.cmxs` matters: lib/why3 also
+# holds the `why3server` executable, which why3 spawns to run the solvers.
+# Without it every solver call hangs for ever, with no error.
 #
 # `META` and `dune-package` are dropped too. They are ocamlfind and dune metadata
-# for compiling against Why3, and nothing here does. They also happen to be the
-# only part of this tree that is not reproducible: dune writes a git-describe
-# version into META when the package's source tree has git metadata, which
-# depends on whether opam had the pin cached as a clone. Excluding them makes two
-# from-scratch builds byte-identical.
+# for compiling against Why3, and nothing here does. The version they carry comes
+# from dune reading the source tree rather than from Why3, and does not have to
+# agree with it: for the commit pinned here they say 1.8.1+git while the binary
+# reports 1.8.2+git.
 opam_root=$WHY3_SWITCH/_opam
 out=$STAGE/why3
 rm -rf "$out"

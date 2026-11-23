@@ -3,8 +3,8 @@
 Every archive is written byte-for-byte deterministically: members are sorted,
 ownership is dropped, permissions are reduced to executable or not, every mtime
 is the upstream commit date, and gzip stores no name or timestamp of its own. So
-two runs over the same build tree produce identical files, and two builds of the
-same release produce identical files whenever the compilers did.
+an archive does not record when or in which directory it was written, and what
+the compilers produced is all that is left to differ.
 """
 
 from __future__ import annotations
@@ -27,9 +27,10 @@ import release
 from gitcmd import git_output
 from manifest import Asset, Member
 
-# `creusot-deps.opam` names each pin twice, as `"why3" {= "git-05bf4ddf"}` under
-# `depends:` and as `"why3.git-05bf4ddf"` under `pin-depends:`. The second form
-# carries the package and the version in one token, so that is the one read.
+# `creusot-deps.opam` names each pin twice, for example as
+# `"why3" {= "git-05bf4ddf"}` under `depends:` and as `"why3.git-05bf4ddf"` under
+# `pin-depends:`. The second form carries the package and the version in one
+# token, so that is the one read.
 WHY3_PIN_PATTERN = re.compile(r'"(?P<package>why3|why3find)\.(?P<version>[^"]+)"')
 
 

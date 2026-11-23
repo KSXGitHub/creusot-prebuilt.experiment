@@ -27,20 +27,20 @@ holds.
 
 Each archive unpacks at one directory and needs no further moving:
 
-| the archive says | unpack it at |
+| the asset's `prefix` in `release.json` | unpack it at |
 | --- | --- |
 | `creusot-data-home` | `$CREUSOT_DATA_HOME`, else `$XDG_DATA_HOME/creusot`, else `~/.local/share/creusot` |
-| `why3-prefix` | the absolute path the release's `release.json` records as `why3_prefix` |
+| `why3-prefix` | the absolute path the same `release.json` records as `why3_prefix` |
 
-The second exists because `why3` compiles its data directory in and honours
-neither `WHY3DATA` nor being moved. `why3 --print-datadir` reports the prefix it
-was built at, so a copy anywhere else looks for its theories where they are not.
+`why3-prefix` is a fixed path rather than a choice, because `why3` compiles its
+data directory in and honours neither `WHY3DATA` nor being moved.
+`why3 --print-datadir` reports the prefix it was built at, so a copy anywhere
+else looks for its theories where they are not.
 
 ## Installing
 
 `install.py` reads the release's own description of itself, so it needs no
-arguments beyond the tools wanted, and nothing beyond a Python 3 standard
-library.
+argument beyond the tools wanted, and nothing but a Python 3 standard library.
 
 ```bash
 curl -fsSLO https://github.com/KSXGitHub/creusot-prebuilt.experiment/releases/latest/download/install.py
@@ -127,20 +127,20 @@ Then compare `dist/SHA256SUMS` against the release's own. A scheduled
 build cache switched off, so that drift is found between releases rather than
 during one.
 
-The Rust half reproduces byte for byte. The Why3 half is built by opam from
-source, through a chain of OCaml packages that is far longer than the Rust one,
-and is the part most likely to differ when the machine underneath changes.
-Treat the attestation as what ties an asset to its build, and the checksums as
-the check that the build still comes out the same.
+Both halves reproduce. Two from-scratch builds of `0.15.0-1` on one machine,
+each starting from an empty opam switch and an empty cargo target directory,
+produced byte-identical archives, Why3 included. What that does not cover is a
+different machine, which is what the scheduled workflow watches for.
 
 ## Building it yourself
 
 This section is for somebody working on this repository.
 
 `just --list` names every task. `just check` runs the checks that need no build.
-`just build` fetches the source, builds both halves and writes the archives, and
-wants `rustup`, `opam`, and the system packages the OCaml dependencies need:
-`libgmp-dev`, `zlib1g-dev` and `rsync` on Debian and Ubuntu.
+`just build` fetches the source, builds both halves and writes the archives. It
+needs `rustup`, `opam`, and the system packages the OCaml dependencies are
+compiled against, which
+[the build action](.github/actions/build/action.yaml) installs on Ubuntu.
 
 [CLAUDE.md](CLAUDE.md) is the contributor guide.
 

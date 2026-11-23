@@ -47,7 +47,7 @@ build target="": source (build-creusot target) build-why3 (package target)
 check-packaging target="":
     ./scripts/check-packaging.sh {{ target }}
 
-# Install dist/ into a scratch directory and put the tools through their paces
+# Install dist/ into a scratch directory and run every tool it put there
 smoke-test:
     ./scripts/smoke-test.sh
 

@@ -25,16 +25,10 @@ RELEASE_FILES = (release.PKGVER_FILE, release.PKGREL_FILE)
 def subject_and_body(message: str) -> tuple[str, list[str]]:
     """Split a commit message into its subject and the non-blank lines after it."""
     lines = message.split("\n")
-    subject = ""
-    index = 0
-    for index, line in enumerate(lines):  # noqa: B007 -- the index is used below
+    for index, line in enumerate(lines):
         if line.strip():
-            subject = line
-            break
-    else:
-        return "", []
-    body = [line for line in lines[index + 1 :] if line.strip()]
-    return subject, body
+            return line, [rest for rest in lines[index + 1 :] if rest.strip()]
+    return "", []
 
 
 def message_problems(message: str, tag: str) -> list[str]:

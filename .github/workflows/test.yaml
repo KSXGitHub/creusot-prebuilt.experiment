@@ -1,13 +1,21 @@
 name: Test
 
 on:
+  # A branch with an open pull request would otherwise build twice, and the
+  # build is the slowest thing here. `workflow_dispatch` covers a branch that
+  # has no pull request yet.
   push:
-    branches: ['**']
+    branches: [master]
   pull_request:
+  workflow_dispatch:
   workflow_call:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
