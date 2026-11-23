@@ -4,9 +4,14 @@ on:
   # A branch with an open pull request would otherwise build twice, and the
   # build is the slowest thing here. `workflow_dispatch` covers a branch that
   # has no pull request yet.
-  # Nothing the build reads is markdown, so a commit that touches only prose
-  # would spend a full build to say so. The list is written twice because
-  # GitHub's workflow parser does not resolve YAML anchors.
+  # Nothing the build reads is markdown. On `push` this skips a prose-only
+  # commit; on `pull_request` it only skips a pull request whose whole diff is
+  # prose, because the filter is matched against every file the pull request
+  # changes rather than against the commits just pushed. A prose push to a
+  # mixed pull request still builds, in about two minutes off the cache.
+  #
+  # The list is written twice because GitHub's workflow parser does not
+  # resolve YAML anchors.
   push:
     branches: [master]
     paths-ignore:

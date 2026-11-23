@@ -108,7 +108,10 @@ Install the hooks on a fresh checkout with `just install-git-hooks`.
 machine, mostly in the opam switch that compiles OCaml and Why3 from source.
 `just check-packaging` and `just smoke-test` are the checks that run on its
 output. The `Test` workflow runs all of it on a pull request, on `master` and on
-demand, and skips a commit that touches only markdown.
+demand. Its `paths-ignore` skips a prose-only commit pushed to `master`, and a
+pull request whose whole diff is prose, but not a prose commit pushed to a pull
+request that also changes code: there the filter reads the whole diff. Such a
+push builds off the cache in about two minutes.
 
 A build script that is being executed must not be edited. Bash reads a script
 incrementally and seeks back to a byte offset between commands, so rewriting the
