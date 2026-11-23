@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """What the git hooks run.
 
 `.githooks/commit-msg` and `.githooks/pre-push` are one line each, because

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """The Rust toolchain a Creusot tag pins, read from its `rust-toolchain` file.
 
 The file is TOML, so it is parsed as TOML. Both the build script and the

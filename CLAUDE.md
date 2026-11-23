@@ -23,7 +23,10 @@ everything in the tree exists to produce one or to check that it is correct.
   invocations and the archive writing. Some of it runs in CI, some in a git
   hook and some from a build script, which is why the directory is not named
   after any one of them. They are type-annotated throughout and checked by
-  `mypy --strict`.
+  `mypy --strict`. A module with an `if __name__ == "__main__":` block carries
+  `#!/usr/bin/env python3` and mode 755, so it can be run by name; a module
+  that is only imported carries neither, and ruff's `EXE` rules reject one
+  without the other.
 - **`install.py`** is the consumer's half of `tools/manifest.py`, and is uploaded
   with each release. It reads `release.json` rather than repeating what the
   manifest says.

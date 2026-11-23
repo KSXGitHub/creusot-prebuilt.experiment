@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Deciding which release to rebuild, and comparing a rebuild against it.
 
 Both halves were shell in the reproducibility workflow. Resolving the release is

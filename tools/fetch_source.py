@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Put the Creusot source for this release where the build reads it.
 
 The checkout is the upstream release tag, shallow, and is left alone when it is

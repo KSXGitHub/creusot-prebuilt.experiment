@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Render the body of a GitHub release from the metadata the build wrote.
 
 These are not release notes and do not try to be. Nothing here narrates a

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Build Why3 and why3find into the staging tree.
 
 Creusot proves nothing without them and neither has a binary release: upstream

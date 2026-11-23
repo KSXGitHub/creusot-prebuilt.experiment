@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Slice the build tree a second time and check the archives come out identical.
 
 This catches the ordinary ways an archive stops being reproducible: a directory

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Build the Creusot binaries and the Coma prelude into the staging tree.
 
 Everything upstream pins is pinned here too: the source is the release tag, the

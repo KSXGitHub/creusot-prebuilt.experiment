@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """What the Rust half of the build has to work out before cargo runs.
 
 Three things here were shell. The host triple was `rustc -vV | sed`, written

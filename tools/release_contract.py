@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """The contract a release commit holds to, checked locally and again in CI.
 
 A release is cut by tagging a commit `X.Y.Z-W`. For that tag to mean anything,

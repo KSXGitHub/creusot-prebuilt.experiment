@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Install what is in dist/ into a scratch directory and run every tool.
 
 What this proves is that the archives install where the tools look for each

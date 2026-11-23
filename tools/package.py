@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Slice the build tree into one archive per tool, then checksum and describe them.
 
 Every archive is written byte-for-byte deterministically: members are sorted,
