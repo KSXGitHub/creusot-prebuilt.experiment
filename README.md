@@ -127,10 +127,16 @@ Then compare `dist/SHA256SUMS` against the release's own. A scheduled
 build cache switched off, so that drift is found between releases rather than
 during one.
 
-Both halves reproduce. Two from-scratch builds of `0.15.0-1` on one machine,
-each starting from an empty opam switch and an empty cargo target directory,
-produced byte-identical archives, Why3 included. What that does not cover is a
-different machine, which is what the scheduled workflow watches for.
+On one machine, every asset reproduces. Two builds of `0.15.0-1`, each starting
+from an empty opam switch and an empty cargo target directory, produced
+byte-identical archives, Why3 included.
+
+Across two machines running the same Ubuntu release, the picture is partial.
+`cargo-creusot`, `creusot-install` and `creusot-prelude` agreed. `why3` and
+`why3find` did not, and they carry no path from the machine that built them, so
+what differs has not been identified. `creusot-rustc` did not either, because
+96 paths from the rustup toolchain it is compiled against had reached the
+binary; a `--remap-path-prefix` for the rustup home now removes them.
 
 ## Building it yourself
 
