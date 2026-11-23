@@ -60,22 +60,29 @@ tool means editing the manifest and nothing else.
 So do not write the asset list into `README.md`, into a workflow, or into
 `install.py`. A second copy is a second thing to forget.
 
-## Reproducibility depends on two fixed paths
+## Reproducibility depends on where the build runs
 
-`scripts/common.sh` defaults `BUILD_ROOT` to `/var/tmp/creusot-prebuilt` and
-`WHY3_SWITCH` to `/opt/creusot-why3`. Neither is a convenience:
+A compiler writes the paths it was given into what it produces, so the
+directories the build uses are inputs to it:
 
-- A Rust binary records the directory it was compiled in. `cargo-creusot` falls
-  back to its own `CARGO_MANIFEST_DIR` when `CREUSOT_PATH` is unset, so the
-  build directory ends up in the binary as a literal string.
-- `why3` compiles its data directory in and honours neither `WHY3DATA` nor
-  being moved. `why3 --print-datadir` reports the prefix it was built at, which
-  is the `_opam` inside `WHY3_SWITCH`, and is why its asset has to be unpacked
+- `scripts/common.sh` defaults `BUILD_ROOT` to `/var/tmp/creusot-prebuilt`.
+  `cargo-creusot` falls back to its own `CARGO_MANIFEST_DIR` when
+  `CREUSOT_PATH` is unset, so the build directory ends up in the binary as a
+  literal string.
+- `scripts/common.sh` defaults `WHY3_SWITCH` to `/opt/creusot-why3`. `why3`
+  compiles its data directory in and honours neither `WHY3DATA` nor being
+  moved. `why3 --print-datadir` reports the prefix it was built at, which is
+  the `_opam` inside `WHY3_SWITCH`, and is why its asset has to be unpacked
   there. `ci/package.py` asks the built binary for that path and records it in
   `release.json`, so nothing else has to spell it.
+- `scripts/build-creusot.sh` remaps three directories out of the Rust build:
+  the source, the cargo home and the rustup home. The last one matters because
+  `creusot-rustc` is compiled against `rustc-dev`, whose sources sit under the
+  toolchain, and without that remapping a build under `/root` and a build under
+  `/home/runner` produce different bytes.
 
-Changing either default changes the published checksums. A change to either one
-is a change to the release, not to the build script.
+Changing any of these changes the published checksums, so a change to one is a
+change to the release rather than to the build script.
 
 ## Cutting a release
 
@@ -99,8 +106,9 @@ Install the hooks on a fresh checkout with `just install-git-hooks`.
 
 `just build` runs the whole pipeline, which takes tens of minutes on a cold
 machine, mostly in the opam switch that compiles OCaml and Why3 from source.
-`just check-packaging` and `just smoke-test` are the two checks that run on its
-output, and the `Test` workflow runs all of this on every branch.
+`just check-packaging` and `just smoke-test` are the checks that run on its
+output. The `Test` workflow runs all of it on a pull request, on `master` and on
+demand, and skips a commit that touches only markdown.
 
 A build script that is being executed must not be edited. Bash reads a script
 incrementally and seeks back to a byte offset between commands, so rewriting the
