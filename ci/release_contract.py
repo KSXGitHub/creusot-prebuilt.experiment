@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import release
 from gitcmd import GitError, git_output
-from release import Release, ReleaseError
+from release import ReleaseError
 
 RELEASE_FILES = (release.PKGVER_FILE, release.PKGREL_FILE)
 
@@ -174,11 +175,8 @@ def main(argv: list[str] | None = None) -> int:
     pre_push_parser.set_defaults(run=command_pre_push)
 
     arguments = parser.parse_args(argv)
-    run: object = arguments.run
-    assert callable(run)
-    result = run(arguments)
-    assert isinstance(result, int)
-    return result
+    run: Callable[[argparse.Namespace], int] = arguments.run
+    return run(arguments)
 
 
 if __name__ == "__main__":

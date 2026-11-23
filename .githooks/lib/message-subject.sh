@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared git-hook helper. Sourced, not executed: it defines a function and sets
 # no `set -euo pipefail` of its own (the sourcing script owns that).
 

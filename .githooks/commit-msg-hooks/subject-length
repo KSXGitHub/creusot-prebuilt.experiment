@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR/../lib
 # commit-msg check: reject any commit message whose subject line exceeds 72
 # characters. GitHub's web UI truncates a longer subject, mangling the
 # title/body split. Pure text, runs for every commit.
