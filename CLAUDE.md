@@ -27,6 +27,17 @@ everything in the tree exists to produce one or to check that it is correct.
   run, so none carries a shebang or the executable bit. Some of it runs in CI,
   some in a git hook and some from a build script, which is why neither
   directory is named after any one of them.
+- **`install.py`** is the consumer's half of `tools/lib/manifest.py`, and is
+  uploaded with each release. It reads `release.json` rather than repeating what
+  the manifest says. `tools/lib/packaging.py` rewrites one assignment in it on
+  the way into `dist/`, so that the uploaded copy installs the release it was
+  uploaded with.
+- **`tests/*.py`** are the unit tests. Each is imported by the runner rather
+  than executed, so none carries a shebang or the executable bit, and each
+  reaches the library as `from lib import ...` because the `test` recipe puts
+  `tools` on `PYTHONPATH`. What belongs here is a parse, a decision or a check
+  that can be exercised without a build, which is most of `tools/lib` apart
+  from the parts that drive `cargo`, `opam` and `git`.
 
 Which of the two a Python file is can be told from where it sits rather than
 from reading it, and ruff's `EXE` rules reject a shebang without the executable
@@ -37,9 +48,6 @@ over `tools/lib/packaging.py` is that shape, and so is `tools/verify_release.py`
 over `tools/lib/release_contract.py`. Give the two different names, because a
 command and a library of the same name are both importable from a command and
 the wrong one wins.
-- **`install.py`** is the consumer's half of `tools/lib/manifest.py`, and is uploaded
-  with each release. It reads `release.json` rather than repeating what the
-  manifest says.
 
 Everything the build decides is in Python, including the toolchain invocations.
 That is not for tidiness: while the computation was in Python and the
@@ -137,8 +145,14 @@ Install the hooks on a fresh checkout with `just install-git-hooks`.
 
 ## Validating a change
 
-`just check` runs the checks that need no build: `mypy`, `ruff`, and
-`shellcheck`. Run it before every commit.
+`just check` runs the checks that need no build: `mypy`, `ruff`, `shellcheck`
+and the unit tests. Run it before every commit.
+
+A test that guards an invariant is only real if it fails when the invariant is
+broken, so break it once and watch it fail before committing the test. The
+invariant worth a test is the one no other check would notice: a scanner's
+boundaries, an error path no input reaches in practice, or a contract between
+two files that no import ties together.
 
 `just build` runs the whole pipeline, which takes tens of minutes on a cold
 machine, mostly in the opam switch that compiles OCaml and Why3 from source.
