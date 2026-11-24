@@ -11,6 +11,8 @@ from lib import release_contract
 from lib.commit_message import from_stored
 
 ZERO_SHA = "0" * 40
+TAG_WRITE = [f"{ZERO_SHA} ccc333 refs/tags/0.15.0-0"]
+"""One line of what git feeds `reference-transaction` as a release tag is written."""
 
 
 class MessageProblems(unittest.TestCase):
@@ -69,6 +71,27 @@ class Report(unittest.TestCase):
         self.assertIn("the subject is wrong", narration.getvalue())
 
 
+class Updates(unittest.TestCase):
+    """The two line formats, which put the new sha in different places.
+
+    Reading one with the other's positions would check a ref name as though it
+    were an object, or an old value as though it were the new one, and the
+    report would be about something nobody asked about.
+    """
+
+    def test_a_push_line_names_the_local_ref_then_its_sha(self) -> None:
+        line = "refs/tags/0.15.0-1 aaa111 refs/tags/0.15.0-1 bbb222"
+        self.assertEqual(list(release_contract.pushed_updates([line])), [("refs/tags/0.15.0-1", "aaa111")])
+
+    def test_a_transaction_line_names_the_values_then_the_ref(self) -> None:
+        line = f"{ZERO_SHA} ccc333 refs/tags/0.15.0-1"
+        self.assertEqual(list(release_contract.transaction_updates([line])), [("refs/tags/0.15.0-1", "ccc333")])
+
+    def test_a_line_too_short_to_read_is_passed_over(self) -> None:
+        self.assertEqual(list(release_contract.pushed_updates(["", "refs/tags/0.15.0-1"])), [])
+        self.assertEqual(list(release_contract.transaction_updates(["", f"{ZERO_SHA} ccc333"])), [])
+
+
 class CheckPushedRefs(unittest.TestCase):
     """The filtering, which decides what is looked at before git is asked anything."""
 
@@ -81,3 +104,26 @@ class CheckPushedRefs(unittest.TestCase):
             "refs/tags/0.15.0-0",
         ]
         self.assertEqual(release_contract.check_pushed_refs(Path("."), lines), 0)
+
+
+class CheckCreatedRefs(unittest.TestCase):
+    """What a ref transaction has to be before git is asked about it.
+
+    This hook runs for every ref update in the repository, so what it declines
+    to look at matters as much as what it refuses.
+    """
+
+    def test_only_the_prepared_state_can_still_stop_anything(self) -> None:
+        for state in ("committed", "aborted", ""):
+            with self.subTest(state):
+                self.assertEqual(release_contract.check_created_refs(Path("."), state, TAG_WRITE), 0)
+
+    def test_a_transaction_touching_no_tag_is_nothing_to_check(self) -> None:
+        lines = [
+            f"{ZERO_SHA} aaa111 refs/heads/side",
+            "aaa111 bbb222 HEAD",
+            f"{ZERO_SHA} ccc333 refs/tags/nightly-2026-08-03",
+            f"ccc333 {ZERO_SHA} refs/tags/0.15.0-0",
+            "",
+        ]
+        self.assertEqual(release_contract.check_created_refs(Path("."), "prepared", lines), 0)

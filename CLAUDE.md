@@ -142,11 +142,26 @@ change to the release rather than to the build script.
    restarts there whenever `pkgver` moves.
 2. Commit with the release identifier as the whole message, which `just version`
    prints. The `commit-msg` hook rejects anything else for such a commit.
-3. Tag the commit with the same identifier and push both.
+3. Tag the commit with the same identifier and push both. `just tag` reads the
+   identifier out of the two files rather than having it typed again.
 
-The `pre-push` hook and the first job of the deployment workflow both run
-`tools/lib/release_contract.py`, so a tag that disagrees with the files it
-points at never reaches a build.
+Three things run `tools/lib/release_contract.py`, and each catches a tag the
+one before it cannot. The `reference-transaction` hook refuses a tag that
+disagrees with the commit it names as the tag is written, which is what makes
+`git tag 0.15.0-9` on a commit saying otherwise fail rather than succeed
+locally. The `pre-push` hook catches a tag written before the hooks were
+installed. The first job of the deployment workflow catches one pushed from a
+checkout that has neither.
+
+git has no hook for writing a tag, so the `reference-transaction` hook is the
+one that can refuse one, and git runs it for every ref update in the repository
+rather than for tags alone. Two consequences. It reads the refs and looks for
+`refs/tags/` before starting anything, because the processes behind it cost
+about 200ms and a commit would otherwise pay that to learn it touched no tag.
+And a transaction covers the refs a fetch writes, which git does not let the
+hook tell apart from the ones a `git tag` writes, so a tag arriving from a
+remote is held to the same contract and one that fails it fails the whole
+fetch. The report names the way to take it anyway.
 
 Install the hooks on a fresh checkout with `just install-git-hooks`.
 

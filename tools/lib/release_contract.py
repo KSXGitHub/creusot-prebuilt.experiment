@@ -10,7 +10,7 @@ pushed from elsewhere cannot skip the check.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 from . import commit_message, release
@@ -20,6 +20,8 @@ from .gitcmd import GitError, git_output
 from .release import ReleaseError
 
 RELEASE_FILES = (release.PKGVER_FILE, release.PKGREL_FILE)
+TAG_PREFIX = "refs/tags/"
+PREPARED = "prepared"
 
 
 def message_problems(message: CommitMessage, tag: str) -> list[str]:
@@ -107,24 +109,67 @@ def check_staged_message(repo: Path, message: CommitMessage) -> int:
     return report(staged.tag, message_problems(message, staged.tag))
 
 
-def check_pushed_refs(repo: Path, lines: Iterable[str]) -> int:
-    """Judge every release-shaped tag in a push.
+def check_refs(repo: Path, updates: Iterable[tuple[str, str]]) -> int:
+    """Judge every release-shaped tag among these `(ref, new sha)` pairs.
 
-    git feeds one `<local-ref> <local-sha> <remote-ref> <remote-sha>` line per
-    ref. A deletion carries an all-zero local sha and has nothing to verify.
+    A ref that is not a tag, a tag whose name is not a release identifier, and a
+    deletion, whose new sha is all zeroes, each have nothing to verify.
     """
     status = 0
+    for ref, new_sha in updates:
+        if not ref.startswith(TAG_PREFIX):
+            continue
+        tag = release.strip_ref_prefix(ref)
+        if not parses_as_tag(tag) or set(new_sha) == {"0"}:
+            continue
+        status |= report(tag, check_commit(tag, new_sha, repo))
+    return status
+
+
+def pushed_updates(lines: Iterable[str]) -> Iterator[tuple[str, str]]:
+    """What `pre-push` is fed: `<local-ref> <local-sha> <remote-ref> <remote-sha>`."""
     for line in lines:
         fields = line.split()
-        if len(fields) < 2:
-            continue
-        local_ref, local_sha = fields[0], fields[1]
-        if not local_ref.startswith("refs/tags/"):
-            continue
-        tag = release.strip_ref_prefix(local_ref)
-        if not parses_as_tag(tag) or set(local_sha) == {"0"}:
-            continue
-        status |= report(tag, check_commit(tag, local_sha, repo))
+        if len(fields) >= 2:
+            yield fields[0], fields[1]
+
+
+def transaction_updates(lines: Iterable[str]) -> Iterator[tuple[str, str]]:
+    """What `reference-transaction` is fed: `<old-value> <new-value> <ref>`."""
+    for line in lines:
+        fields = line.split()
+        if len(fields) >= 3:
+            yield fields[2], fields[1]
+
+
+def check_pushed_refs(repo: Path, lines: Iterable[str]) -> int:
+    """Judge every release-shaped tag a push would send."""
+    return check_refs(repo, pushed_updates(lines))
+
+
+def check_created_refs(repo: Path, state: str, lines: Iterable[str]) -> int:
+    """Judge every release-shaped tag a ref transaction is about to write.
+
+    This is what catches `git tag 0.15.0-9` on a commit that says otherwise,
+    which `pre-push` would only catch once the tag was already written. git runs
+    it for every ref it updates, in three states, and only a non-zero exit from
+    `prepared` stops the update: by `committed` and `aborted` the transaction has
+    already been decided.
+
+    A transaction covers the refs a fetch writes as well as the ones a `git tag`
+    writes, and git gives the hook the same environment either way, so a tag
+    arriving from a remote is held to the same contract. One that does not hold
+    fails the whole fetch, which is why the report names the way to take it
+    anyway.
+    """
+    if state != PREPARED:
+        return 0
+    status = check_refs(repo, transaction_updates(lines))
+    if status != 0:
+        say(
+            "\nIf this tag is arriving from a fetch rather than one you are writing,\n"
+            "`git -c core.hooksPath= fetch` takes it without this check."
+        )
     return status
 
 

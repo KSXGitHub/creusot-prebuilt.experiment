@@ -12,6 +12,10 @@ default:
 version:
     @echo "{{ pkgver }}-{{ pkgrel }}"
 
+# Tag HEAD with the release identifier, reading it rather than typing it
+tag:
+    git tag "{{ pkgver }}-{{ pkgrel }}"
+
 # Point git at the hooks in .githooks
 install-git-hooks:
     git config core.hooksPath .githooks
