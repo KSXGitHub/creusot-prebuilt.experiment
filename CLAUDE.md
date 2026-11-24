@@ -100,8 +100,13 @@ which is the reason `tools/lib/opam.py` exists.
 
 `tools/lib/manifest.py` says which built file goes into which asset and where that
 asset unpacks. `tools/lib/packaging.py` writes `release.json` from it,
-`tools/release_body.py` renders the release body from that, and `install.py`
+`tools/lib/inventory.py` renders the release body from that, and `install.py`
 reads it back. Adding a tool means editing the manifest and nothing else.
+
+The body is markdown that GitHub renders the way it renders a comment, so a
+newline inside a paragraph reaches the page as a `<br>`. Prose there is built
+with `paragraph`, which joins the fragments it is wrapped into, and a bare
+string in `render` is a line that has to stand on its own.
 
 So do not write the asset list into `README.md`, into a workflow, or into
 `install.py`. A second copy is a second thing to forget.
