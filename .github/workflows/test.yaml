@@ -1,0 +1,77 @@
+name: Test
+
+on:
+  # A branch with an open pull request would otherwise build twice, and the
+  # build is the slowest thing here. `workflow_dispatch` covers a branch that
+  # has no pull request yet.
+  # Nothing the build reads is markdown. On `push` this skips a prose-only
+  # commit; on `pull_request` it only skips a pull request whose whole diff is
+  # prose, because the filter is matched against every file the pull request
+  # changes rather than against the commits just pushed. A prose push to a
+  # mixed pull request still builds, in about two minutes off the cache.
+  #
+  # The list is written twice because GitHub's workflow parser does not
+  # resolve YAML anchors.
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check the scripts
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install mypy and ruff
+        run: pip install -r tools/requirements.txt
+
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - name: Check the Python
+        run: just check-python
+
+      - name: Check the shell scripts
+        run: just check-shell
+
+      - name: Run the unit tests
+        run: just test
+
+  build:
+    name: Build
+
+    runs-on: ubuntu-24.04
+
+    # The opam switch compiles OCaml, Why3 and why3find from source, which runs
+    # for the better part of an hour on a cold cache. The limit is there to end
+    # a hang, not to pace a build.
+    timeout-minutes: 150
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build every tool and slice it into archives
+        uses: ./.github/actions/build
+

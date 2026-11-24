@@ -1,0 +1,116 @@
+name: Build Creusot
+description: Build every tool from source and slice the build tree into release archives.
+
+inputs:
+  target:
+    description: The target triple to build for. Defaults to the runner's own.
+    required: false
+    default: ''
+  cache:
+    description: >-
+      Whether to read and write the build cache. Set it to 'false' to prove that
+      a release can be rebuilt from its recorded inputs alone.
+    required: false
+    default: 'true'
+  opam-version:
+    description: Which opam release to drive the Why3 build with.
+    required: false
+    default: '2.5.0'
+
+runs:
+  using: composite
+  steps:
+    - name: Install the system packages the Why3 build needs
+      shell: bash
+      run: |
+        sudo apt-get update
+        # libgmp-dev and zlib1g-dev back the zarith and camlzip opam packages;
+        # opam runs rsync to pin a package that lives in a directory, and
+        # refuses to start at all without bubblewrap, which is what it builds
+        # each package inside.
+        sudo apt-get install -y libgmp-dev zlib1g-dev rsync bubblewrap
+
+    - name: Install opam
+      shell: bash
+      run: |
+        case "$(uname -m)" in
+          x86_64) opam_arch=x86_64 ;;
+          aarch64 | arm64) opam_arch=arm64 ;;
+          *) echo "no opam release for $(uname -m)" >&2; exit 1 ;;
+        esac
+        version='${{ inputs.opam-version }}'
+        url="https://github.com/ocaml/opam/releases/download/$version/opam-$version-$opam_arch-linux"
+        curl --proto '=https' --tlsv1.2 -fsSL "$url" -o /tmp/opam
+        sudo install -m 755 /tmp/opam /usr/local/bin/opam
+        opam --version
+
+    - name: Create the directory the Why3 switch is built in
+      shell: bash
+      run: |
+        # why3 compiles its data directory in, so the switch has to be built at
+        # the fixed directory whose `_opam` the asset is unpacked at. Only root
+        # may write to /opt, so it is created here and handed to the runner.
+        sudo install -d -o "$(id -u)" -g "$(id -g)" /opt/creusot-why3
+
+    - name: Install just
+      uses: taiki-e/install-action@v2
+      with:
+        tool: just
+
+    - name: Read the release identifier
+      id: release
+      shell: bash
+      run: echo "pkgver=$(cat pkgver)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache the build
+      if: inputs.cache == 'true'
+      uses: actions/cache@v6
+      with:
+        # `~/.rustup` is left out on purpose. It is the largest thing here at
+        # 2.1 GB, and rustup refetches the pinned toolchain in about a minute,
+        # which is less than storing and restoring it costs.
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          ~/.opam
+          /opt/creusot-why3
+          /var/tmp/creusot-prebuilt
+        # The key carries pkgver but not pkgrel, so every build revision of one
+        # Creusot version reads the same cache. The run id makes each key new, so
+        # a run always restores the most recent match and always saves what it
+        # ends with.
+        key: build-${{ runner.os }}-${{ runner.arch }}-${{ inputs.target }}-${{ steps.release.outputs.pkgver }}-${{ github.run_id }}
+        restore-keys: |
+          build-${{ runner.os }}-${{ runner.arch }}-${{ inputs.target }}-${{ steps.release.outputs.pkgver }}-
+
+    - name: Fetch the Creusot source
+      shell: bash
+      run: just source
+
+    - name: Build the Creusot binaries and the Coma prelude
+      shell: bash
+      run: just build-creusot '${{ inputs.target }}'
+
+    - name: Build Why3 and why3find
+      shell: bash
+      run: just build-why3
+
+    - name: Slice the build tree into archives
+      shell: bash
+      run: just package '${{ inputs.target }}'
+
+    - name: Slice the build tree again and check nothing moved
+      shell: bash
+      run: just check-packaging '${{ inputs.target }}'
+
+    - name: Put the archives through an installation and a proof-free run
+      shell: bash
+      run: just smoke-test
+
+    - name: Drop the switch's build directories before the cache is saved
+      if: inputs.cache == 'true'
+      shell: bash
+      # What opam keeps after an install is the unpacked and compiled source of
+      # every package, which nothing reads again. For this switch that is
+      # 1.4 GB down to 893 MB.
+      run: opam clean --switch /opt/creusot-why3

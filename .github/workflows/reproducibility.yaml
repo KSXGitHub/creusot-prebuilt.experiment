@@ -1,0 +1,63 @@
+name: Reproducibility
+
+# Rebuild a published release from its recorded inputs, with the build cache
+# switched off, and compare the result against the checksums that release
+# carries. A difference means something outside the pinned inputs reached the
+# build: a changed runner image, a dependency resolved afresh, a timestamp that
+# escaped SOURCE_DATE_EPOCH.
+#
+# Run by hand, because a full build is the most expensive thing in this
+# repository and nothing needs this answer on a schedule. Reach for it when a
+# release's checksums are in question, or after changing anything the build
+# reads.
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Which release to rebuild. Defaults to the latest.
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    name: Rebuild and compare
+
+    runs-on: ubuntu-24.04
+
+    timeout-minutes: 150
+
+    steps:
+      # This checkout is only here to get `tools/reproduce.py`, which decides
+      # which release to rebuild. The checkout after it replaces the tree with
+      # that release's own, so the rebuild and the comparison both run the code
+      # the release was cut from.
+      - uses: actions/checkout@v7
+
+      - name: Find the release to rebuild
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED: ${{ inputs.release }}
+        run: python3 tools/reproduce.py --repository "$GITHUB_REPOSITORY" resolve --requested "$REQUESTED"
+
+      - name: Check out the release
+        if: steps.release.outputs.tag != ''
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Build every tool again, without the cache
+        if: steps.release.outputs.tag != ''
+        uses: ./.github/actions/build
+        with:
+          cache: 'false'
+
+      - name: Compare against the checksums the release carries
+        if: steps.release.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: python3 tools/reproduce.py --repository "$GITHUB_REPOSITORY" compare --release "$RELEASE_TAG"

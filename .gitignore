@@ -1,0 +1,4 @@
+# The assembled build tree and the archives sliced out of it.
+/build/
+/dist/
+__pycache__/

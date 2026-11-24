@@ -1,0 +1,86 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+python := env("PYTHON", "python3")
+pkgver := trim(shell("cat pkgver"))
+pkgrel := trim(shell("cat pkgrel"))
+
+# List the recipes
+default:
+    @just --list
+
+# Print the release identifier, which is also the tag and the release name
+version:
+    @echo "{{ pkgver }}-{{ pkgrel }}"
+
+# Tag HEAD with the release identifier, reading it rather than typing it
+tag:
+    git tag "{{ pkgver }}-{{ pkgrel }}"
+
+# Point git at the hooks in .githooks
+install-git-hooks:
+    git config core.hooksPath .githooks
+
+# Stop git using the hooks in .githooks
+uninstall-git-hooks:
+    git config --unset core.hooksPath 2>/dev/null || true
+
+# Check that a tag, the commit it points at, and pkgver/pkgrel all agree
+verify-release ref commit="HEAD":
+    {{ python }} tools/verify_release.py '{{ ref }}' '{{ commit }}'
+
+# Put the pinned Creusot source where the build scripts read it
+source:
+    ./scripts/fetch-source.bash
+
+# Build the Creusot binaries and the Coma prelude into build/creusot
+build-creusot target="":
+    ./scripts/build-creusot.bash {{ target }}
+
+# Build Why3 and why3find into build/why3
+build-why3:
+    ./scripts/build-why3.bash
+
+# Slice the build tree into one archive per tool under dist/
+package target="":
+    ./scripts/package.bash {{ target }}
+
+# Everything: fetch the source, build both halves, and write the archives
+build target="": source (build-creusot target) build-why3 (package target)
+
+# Slice the build tree a second time and check the archives come out identical
+check-packaging target="":
+    ./scripts/check-packaging.bash {{ target }}
+
+# Install dist/ into a scratch directory and run every tool it put there
+smoke-test:
+    ./scripts/smoke-test.bash
+
+# Compare what dist/ holds against the checksums a published release carries
+compare-release tag repository="KSXGitHub/creusot-prebuilt.experiment":
+    {{ python }} tools/reproduce.py --repository '{{ repository }}' compare --release '{{ tag }}'
+
+# Check the types and the lints of the Python
+check-python:
+    {{ python }} -m mypy
+    {{ python }} -m ruff check
+    {{ python }} -m ruff format --check
+
+# Apply what ruff can fix, then reformat
+fix-python:
+    {{ python }} -m ruff check --fix
+    {{ python }} -m ruff format
+
+# Check the shell scripts and the git hooks
+check-shell:
+    shellcheck -x scripts/*.bash scripts/lib/*.bash .githooks/*
+
+# Run the unit tests, or only those whose name holds the pattern
+test pattern="":
+    {{ python }} tools/run_tests.py {{ pattern }}
+
+# Every check that does not need a build
+check: check-python check-shell test
+
+# Remove the build tree and the archives, leaving the source checkout alone
+clean:
+    rm -rf build dist

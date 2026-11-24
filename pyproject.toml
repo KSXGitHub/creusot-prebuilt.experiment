@@ -1,0 +1,39 @@
+# This repository ships no Python package. The file is here because mypy and
+# ruff read their configuration from it.
+
+[tool.mypy]
+files = ["tools", "install.py", "tests"]
+mypy_path = "tools"
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+
+[tool.ruff]
+include = ["tools/**/*.py", "install.py", "tests/**/*.py"]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "S", "RUF", "EXE", "T20"]
+# T20 rejects `print`, which leaves two spellings and no third: `say` for the
+# person, who reads stderr, and `sys.stdout.write` where another program is
+# reading. Neither channel can then be picked by accident.
+# EXE holds a module that can be run and a module that is only imported to
+# their own shapes: a shebang without the executable bit, or the bit without a
+# shebang, is a module whose two halves disagree about which it is.
+# Every subprocess call here names a fixed program and builds its own
+# arguments, and resolving `git` and `rustc` through PATH is what a build
+# tool is supposed to do.
+ignore = ["S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+# `install.py` builds an https URL out of its own arguments and opens it, which
+# is how it downloads a release asset.
+"install.py" = ["S310"]
+# A test narrows a type with `assert`. S101 rejects one because `python -O`
+# strips it, which the test run never does.
+"tests/**/*.py" = ["S101"]
+# `unittest`'s TestResult hooks are camelCase, so an override of one cannot be
+# named any other way. Ruff offers `@typing.override` instead, which arrived in
+# 3.12 and this is written to 3.11.
+"tools/lib/test_report.py" = ["N802"]

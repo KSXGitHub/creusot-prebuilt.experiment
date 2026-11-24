@@ -1,0 +1,98 @@
+name: Deployment
+
+on:
+  push:
+    tags:
+      # <pkgver>-<pkgrel>: the Creusot version, then this repository's build
+      # revision of it. `tools/lib/release_contract.py` checks the exact shape.
+      - '[0-9]*.[0-9]*.[0-9]*-[0-9]*'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify the release commit
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - name: Check the tag, the commit it points at, and pkgver/pkgrel agree
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: just verify-release "$RELEASE_REF"
+
+  build:
+    name: Build
+
+    needs: verify
+
+    runs-on: ubuntu-24.04
+
+    timeout-minutes: 150
+
+    permissions:
+      contents: read
+      id-token: write # for actions/attest-build-provenance
+      attestations: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build every tool and slice it into archives
+        uses: ./.github/actions/build
+
+      - name: Attest the provenance of everything that will be uploaded
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/SHA256SUMS
+            dist/release.json
+            dist/install.py
+
+      - name: Hand the archives to the release job
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-assets
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Publish the release
+
+    needs: build
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Take the archives from the build job
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist
+
+      - name: Describe the release from what the build recorded
+        run: python3 tools/release_body.py dist/release.json --repository "$GITHUB_REPOSITORY" > body.md
+
+      - name: Create the release and upload every asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TAG" \
+            --notes-file body.md \
+            dist/*

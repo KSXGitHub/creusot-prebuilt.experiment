@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# git names the state of the transaction in the argument and feeds the refs it
+# is about to change on standard input. This is the one hook a `git tag`
+# reaches, because it runs for every ref update in the repository: a commit, a
+# checkout, a branch, a fetch.
+#
+# That is also why it looks for `refs/tags/` before starting anything. Reading
+# the refs costs one fork; the two processes behind it cost about 200ms, which
+# every commit would otherwise pay. The test is for the presence of a tag rather
+# than for the shape of one, so it cannot skip a tag that `githook.py` would
+# have judged.
+set -euo pipefail
+mapfile -t refs
+case "${refs[*]}" in
+  *refs/tags/*) ;;
+  *) exit 0 ;;
+esac
+root=$(git rev-parse --show-toplevel)
+printf '%s\n' "${refs[@]}" | python3 "$root/tools/githook.py" --repo "$root" reference-transaction "${1-}"
