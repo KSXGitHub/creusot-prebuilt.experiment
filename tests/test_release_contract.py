@@ -7,7 +7,7 @@ import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
 
-from lib import release_contract
+from lib import layout, release_contract
 from lib.commit_message import from_stored
 
 ZERO_SHA = "0" * 40
@@ -90,6 +90,25 @@ class Updates(unittest.TestCase):
     def test_a_line_too_short_to_read_is_passed_over(self) -> None:
         self.assertEqual(list(release_contract.pushed_updates(["", "refs/tags/0.15.0-1"])), [])
         self.assertEqual(list(release_contract.transaction_updates(["", f"{ZERO_SHA} ccc333"])), [])
+
+
+class HookFilter(unittest.TestCase):
+    """The one fact `.githooks/reference-transaction` spells for itself.
+
+    The hook looks for a tag among the refs before starting anything, because
+    the processes behind it cost about 200ms that every commit would otherwise
+    pay to learn it touched no tag. The test is for the presence of a tag rather
+    than the shape of one, so the hook decides nothing and extracts nothing, but
+    it does spell the prefix `check_refs` reads, and the two drifting apart would
+    leave the hook passing over the tags it exists to catch.
+    """
+
+    def test_the_hook_looks_for_the_prefix_check_refs_reads(self) -> None:
+        hook = (layout.repository_root() / ".githooks" / "reference-transaction").read_text(encoding="utf-8")
+        # The comments naming the prefix are dropped, because the first draft of
+        # this test read the whole file and passed with the filter broken.
+        code = [line for line in hook.splitlines() if not line.lstrip().startswith("#")]
+        self.assertIn(release_contract.TAG_PREFIX, "\n".join(code))
 
 
 class CheckPushedRefs(unittest.TestCase):
